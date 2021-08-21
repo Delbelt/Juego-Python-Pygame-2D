@@ -201,7 +201,8 @@ class Juego():
 
                                     #Crea un potenciador cuando matamos un enemigo
                                     #5) Modificar la posibilidad de salida de los potenciadores
-                                    
+                                    ruby = Ruby(self.grupo_plataforma, self.grupo_portal)
+                                    self.grupo_ruby.add(ruby)
                             
                         if enemigo.direccion == 1 and self.modo_juego:  #SI EL ZOMBIE VA PARA LA DERECHA: - (PARA EVITAR QUE ROTE EN CADA GOLPE) - MODO ATURDIR                           
 
@@ -224,7 +225,8 @@ class Juego():
 
                                     #Crea un potenciador cuando matamos un enemigo
                                     #5) Modificar la posibilidad de salida de los potenciadores
-                                    
+                                    ruby = Ruby(self.grupo_plataforma, self.grupo_portal)
+                                    self.grupo_ruby.add(ruby)
 
                             if enemigo.direccion == -1 and self.modo_juego: #SI EL ZOMBIE VA PARA LA IZQUIERDA - PARA EVITAR QUE ROTE EN CADA GOLPE - MODO ATURDIR
 
@@ -278,25 +280,141 @@ class Juego():
                     #AGREGA UN ENEMIGO AL JUEGO, SI LO AGARRAN ELLOS:                    
                     enemigo = Enemigo(self.grupo_plataforma, self.grupo_portal, self.ronda_numero, 5 + self.ronda_numero)
                     self.grupo_enemigo.add(enemigo)                 
-  
-    
-    def add_enemigo(self):
-        pass       
+              
 
     def chequear_ronda_terminada(self): #CHEQUEA SI SOBREVIVIO A UNA NOCHE
-        pass   
+        
+        if self.tiempo_ronda == 0:
+           self.iniciar_nueva_ronda() 
+
 
     def chequear_juego_terminado(self): #CHEQUEA SI EL JUGADOR PERDIO EL JUEGO
-        pass
-    
+        
+        if self.jugador.vida <= 0: #SI EL JUGADOR MUERE:
+
+            pygame.mixer.music.stop()
+            self.contador_fps = 0 #Vuelvo el contador a 0 antes del reinicio para que la "P - Pausa" no se clickear
+            self.pausar_juego("Game Over! Final Score:" + str(self.score), "Presiona 'Enter' para jugar otra vez")
+            self.reiniciar_juego()
+
+
     def iniciar_nueva_ronda(self): #INICIA UNA NUEVA RONDA
-        pass       
+        
+        self.ronda_numero += 1 #INCREMENTA LAS RONDAS        
+
+        #MODIFICACIONES DEL JUEGO QUE VAN A IR SUBIENDO O DISMINUYENDO RONDA TRAS RONDA:
+        if self.ronda_numero < self.TIEMPO_SPAM_ENEMIGO:
+            self.tiempo_spam_enemigo -= 1 #Tiempo de creacion de los enemigos disminuye
+        
+        #TESTEAR
+
+        # AUMENTAR EL TIEMPO DE RAFAGA
+        # RESTARLE VELOCIDAD AL JUGADOR
+        # AUMENTARLE LA VIDA A LOS ENEMIGOS (SI ESTAMOS EN MODO DAÑO)                
+
+        #RESET DE LOS VALORES DE LA RONDA.
+        self.tiempo_ronda = self.TIEMPO_RONDA + self.ronda_numero #AUMENTA EL TIEMPO DE RONDAS
+        self.grupo_enemigo.empty() #ELIMINA LOS ENEMIGOS
+        self.grupo_ruby.empty() #ELIMINA LOS POTENCIADORES
+        self.grupo_proyectil.empty() #ELIMINA LOS PROYECTILES
+        self.jugador.reiniciar() #REINICIA AL JUGADOR
+
+        self.pausar_juego("Has sobrevivido la noche!", "Presiona 'Enter' para continuar")
+    
 
     def pausar_juego(self, texto_principal, texto_secundario): #PAUSA EL JUEGO - GIU
-        pass
+
+        #SE PODRIA AGREGAR OTRO TIPO DE PAUSA QUE SOLO SEA PARA LA INTRO DEL JUEGO
+        #PARA QUE SE DIFERENCIA LA INTERFAZ DE PAUSA Y EL INICIO DEL JUEGO
+        #SE PUEDE AGREGAR COMO PLANTILLA PARA OTRAS GUIS
+        
+        global running
+
+        pygame.mixer.music.pause()
+
+        #ESTABLECE COLORES EN LA PAUSA - EFECTOS:
+
+        WHITE = (255, 255, 255)
+        BLACK = (0, 0, 0)
+        GREEN = (25, 200, 25)
+
+        #TEXTO PRINCIPAL:
+
+        texto_principal = self.titulo_fuente.render(texto_principal, True, GREEN) #Renderiza el texto
+        texto_principal_rect = texto_principal.get_rect() #Guardo la posicion de la recta del texto, en el trazo.
+        texto_principal_rect.center = (WIDTH // 2, HEIGHT // 2) #Posicion de la recta
+
+        #TEXTO SECUNDARIO:
+
+        texto_secundario = self.titulo_fuente.render(texto_secundario, True, WHITE) #Renderiza el texto
+        texto_secundario_rect = texto_secundario.get_rect() #Guardo la posicion de la recta del texto, en el trazo.
+        texto_secundario_rect.center = (WIDTH // 2, HEIGHT // 2 + 64) #Posicion de la recta
+
+        #DIBUJOS DE PAUSA - HAY QUE AGREGARLOS PARA QUE APAREZCAN:
+        display.fill(BLACK) #SOBRE-ESCRIBE LO QUE ESTABA EN EL DISPLAY
+        display.blit(texto_principal, texto_principal_rect) #DIBUJO: PUNTAJE
+        display.blit(texto_secundario, texto_secundario_rect) #DIBUJO: VIDA  
+        
+        pygame.display.update() #ACTUALIZA LA PANTALLA             
+
+        #PAUSA EL JUEGO HASTA PULSAR ENTER - SALIR
+
+        #CICLO DE VIDA DE LA PAUSA:
+
+        en_pausa = True
+        nuevo_juego = True
+
+        while en_pausa: #Pausa = True
+
+            for evento in pygame.event.get():
+
+                #El jugador quiere terminar el juego:
+                if evento.type == pygame.QUIT: #SALIR X
+                    
+                    en_pausa = False
+                    running = False #Termina el ciclo del juego                                        
+                    pygame.mixer.music.stop()
+                    pygame.quit() #Cierra la pestaña 
+
+                if evento.type == pygame.KEYDOWN:
+                    #El evento KEYDOWN se produce cuando se presiona una tecla:
+
+                    #EL USUARIO QUIERE INICIAR O REINICIAR EL JUEGO
+                    if evento.key == pygame.K_RETURN: #ENTER
+                        if self.contador_fps == 0:
+                            en_pausa = False #Termina la pausa
+                            nuevo_juego = False
+                            pygame.mixer.music.unpause() #Vuelve la musica
+
+                    #EL USUARIO QUIERE CONTINUAR EL JUEGO, LUEGO DE PAUSAR
+                    if evento.key == pygame.K_p: #TECLA P
+
+                        if self.contador_fps != 0: #Antes de iniciar el juego el contador espera en 0, por eso la P no puede clickearse, pero a partir que inicia, ya puede aplicarse
+
+                            en_pausa = False #Termina la pausa
+                            pygame.mixer.music.unpause() #Vuelve la musica                                           
+
 
     def reiniciar_juego(self): #REINICIA EL JUEGO
-        pass    
+        
+        #RESTABLECE LOS VALORES INICIALES
+
+        self.score = 0
+        self.ronda_numero = 1
+        self.tiempo_ronda = self.TIEMPO_RONDA
+        self.tiempo_spam_enemigo = self.TIEMPO_SPAM_ENEMIGO
+
+        #Reiniciar el jugador:
+        self.jugador.vida = self.jugador.VIDA_INICIAL
+        self.jugador.reiniciar()
+
+        #Vaciamos los GRUPOS - SPRITES
+        self.grupo_enemigo.empty()
+        self.grupo_ruby.empty()
+        self.grupo_proyectil.empty()
+
+        pygame.mixer.music.play(-1, 0.0) # (-1 = Bucle infinito, 0.0 = Comienza en:)
+        pygame.mixer.music.set_volume(0.1) #VOLUMEN DESDE: 0.1 a 1.0
 
 ############################################################################################
 
@@ -1180,20 +1298,141 @@ class RubyLogo(pygame.sprite.Sprite): #Animacion del LOGO del juego - PODRIA SER
 
 class Ruby(pygame.sprite.Sprite): #Ruby: Da puntos y aumenta la salud del jugador
 
-    def __init__(self):
-        pass
+    def __init__(self, grupo_plataforma, grupo_portal):
+        
+        super().__init__()
+
+        #VARIABLES CONSTANTES:
+        self.ACELERACION_VERTICAL = 3 #Gravedad
+        self.HORIZONTAL_VELOCIDAD = 5 #Velocidad
+
+        #Animacion de los fotogramas
+        self.ruby_sprites = []
+
+        #ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile000.png"),(54,54)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile001.png"),(54,54)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile002.png"),(54,54)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile003.png"),(54,54)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile004.png"),(54,54)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile005.png"),(54,54)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile006.png"),(54,54)))
+
+        #SE USARA COMO INDICE DE LA LISTA - INDEX
+        self.indice_sprite = 0
+
+        #CARGA LA IMAGEN DE PARTIDA
+        self.image = self.ruby_sprites[self.indice_sprite] 
+
+        #OBTENGO LA RECTA (get.rect):
+        self.rect = self.image.get_rect() #POSICION DE LA RECTA
+        self.rect.bottomleft = (WIDTH // 2 ,100) #A PARTIR DE: ABAJO A LA IZQUIERDA = (x,y)
+
+        #GRUPOS - SPRITES:
+        self.grupo_plataforma = grupo_plataforma
+        self.grupo_portal = grupo_portal
+
+        #CARGA DE SONIDOS:
+        self.sonido_portal= pygame.mixer.Sound("sounds/portal_sound.wav")
+
+        #CINEMATICAS VECTORIALES:
+        self.posicion = vector(self.rect.x, self.rect.y) #Posicion del trazo de la recta
+        self.velocidad = vector(random.choice([-1 * self.HORIZONTAL_VELOCIDAD, self.HORIZONTAL_VELOCIDAD]), 0)
+        self.aceleracion = vector(0, self.ACELERACION_VERTICAL)
+
 
     def update(self):
-        pass
+        
+        self.animacion(self.ruby_sprites, 0.25)        
+        self.mover()
+        self.chequear_colisiones()
+
 
     def mover(self): #Movimiento del Ruby    
-        pass
+
+        #CALCULAR LOS VALORES DE LAS CINEMATICAS:      
+
+        #NO SE NECESITA ACTUALIZAR EL VECTOR DE ACELERACION PORQUE NUNCA CAMBIA.
+            
+        #MATEMATICA VECTORIAL (5, 2) + (6, 1) = (11, 3)
+            
+        self.velocidad += self.aceleracion #ACTUALIZA EL VECTOR DE VELOCIDAD
+
+        self.posicion += self.velocidad + 0.5 * self.aceleracion #ACTUALIZA EL VECTOR DE POSICION        
+
+        #ACTUALIZAR LA RECTA (rect) BASADA EN LOS CALCULOS CINEMATICOS:
+            
+        #CONDICIONES PARA QUE EL RUBY PASE DE UN LADO A OTRO DE LA PANTALLA        
+
+        if self.posicion.x < 0: #Posicion RUBY menor a 0
+
+            self.posicion.x = WIDTH
+
+        elif self.posicion.x > WIDTH: #Posicion RUBY mayor a la pantalla
+
+            self.posicion.x = 0
+
+        #SE PUEDE CAMBIAR PARA QUE EL RUBY NO PUEDA SALIR DE LA PANTALLA
+
+        #DESPUES DE QUE SE ACTUALICEN TODOS LOS VECTORES CORREGIMOS LA POSICION:
+
+        self.rect.bottomleft = self.posicion
+
 
     def chequear_colisiones(self): #Chequea las colisiones del Ruby con el entorno
-        pass
+        
+        #spritecollide(Grupo a comprobar, Grupo A Colisionar, Desaparecer objeto al chocar?)
+        colision_plataforma = pygame.sprite.spritecollide(self, self.grupo_plataforma, False, pygame.sprite.collide_mask) #COMPRUEBA COLISION
+
+        #Tambien se puede usar para dañar al objeto colisionado
+        if colision_plataforma: #SI LA LISTA >> NO << ESTA VACIA:
+                
+            #IGUALA LA POSICION AL OBJETO QUE CHOCA + 1: DE REBOTE AL CHOCAR.
+            self.posicion.y = colision_plataforma[0].rect.top + 1
+            self.velocidad.y = 0 #ASEGURA QUE SE DEJE DE MOVER
+        
+        #Chequea las colisiones con los portales:
+        if pygame.sprite.spritecollide(self,self.grupo_portal, False, pygame.sprite.collide_mask):
+
+            self.sonido_portal.play() #Activa el sonido del portal
+
+            #Una vez que colisiona, determinar a que portal se movera:
+
+            #IZQUIERDA Y DERECHA:
+
+            #Si es mayor a la mitad HORIZONTAL, estas en el LADO DERECHO
+            if self.posicion.x > WIDTH / 2: #Centro de la pantalla Horizontalmente
+                self.posicion.x = 86 #Lleva al jugador a esta posicion
+            
+            else: #Por contrario estas en el LADO IZQUIERDO
+                self.posicion.x = WIDTH - 150 #150 Pixeles
+
+            #ARRIBA Y ABAJO:
+
+            #Si es mayor a la mitad VERTICAL, estas ARRIBA
+            if self.posicion.y > HEIGHT / 2: #Centro de la pantalla Verticalmente
+                self.posicion.y = 64 #Lleva al jugador a esta posicion
+            
+            else: #Por contrario estas ABAJO
+                self.posicion.y = HEIGHT - 132 #132 Pixeles
+
+            self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
+
 
     def animacion(self, sprite_list, speed):
-        pass      
+        #sprite_list[]: Lista que contiene las animaciones correspondientes
+        #speed: Velocidad de la animacion
+
+        if self.indice_sprite < len(sprite_list) -1: #RESTA EN UNO PARA QUE COINCIDA CON INDICE
+            self.indice_sprite += speed #AGREGO A LA VARIABLE LA VELOCIDAD
+
+        else:
+            self.indice_sprite = 0 #PARA QUE VUELVA A EMPEZAR
+
+        #ASEGURA DE QUE ESTAMOS CAMBIANDO NUESTRO VALOR ACTUAL DE SPRITE:
+
+        #ESTABLECE LA IMAGEN CON LA VARIABLE + EL SPEED DE LAS CONDICIONES:
+        self.image = sprite_list[int(self.indice_sprite)]       
  
 ############################################################################################
 
@@ -1464,6 +1703,11 @@ while running: #Mientras se este corriendo el juego:
                 #CREACION DE LOS ENEMIGOS
                 enemigo = Enemigo(grupo_plataforma, grupo_portal, 2, 7)  
                 grupo_enemigo.add(enemigo)
+
+            #PAUSA
+            if evento.key == pygame.K_p: #P
+                #Pausa el juego                
+                juego.pausar_juego("Juego en PAUSA!","Presiona 'P' para continuar")  
 
     #Dibujar (blit) el fondo en la pantalla:    
     display.blit(background_image, backgroud_rect) #Superposicion (Fondo, Fondo recta)
