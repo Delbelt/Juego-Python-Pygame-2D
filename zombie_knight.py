@@ -278,14 +278,102 @@ class Ruby(pygame.sprite.Sprite): #Ruby: Da puntos y aumenta la salud del jugado
 class Portal(pygame.sprite.Sprite): #Portal de teletransportacion
 
     def __init__(self,x,y, color, grupo_portal):  
-        pass 
+        
+        super().__init__()
+
+        #ANIMACION DE LOS FRAMES DEL PORTAL
+        self.portal_sprites = []
+
+        #ANIMACION DEL PORTAL:
+
+        #EN CASO DE QUE EL PORTAL SEA VERDE:        
+        if color == "green":
+
+            #ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS:            
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile000.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile001.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile002.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile003.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile004.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile005.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile006.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile007.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile008.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile009.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile010.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile011.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile012.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile013.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile014.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile015.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile016.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile017.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile018.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile019.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile020.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile021.png"),(72,72)))
+        
+        #EN CASO DE QUE EL PORTAL NO SEA VERDE:
+        else:
+
+            #ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS:
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile000.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile001.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile002.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile003.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile004.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile005.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile006.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile007.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile008.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile009.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile010.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile011.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile012.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile013.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile014.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile015.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile016.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile017.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile018.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile019.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile020.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile021.png"),(72,72)))
+
+        #SE USARA COMO INDICE DE LA LISTA - INDEX
+        self.indice_sprite = random.randint(0,len(self.portal_sprites)-1) #INDEX RANDOM
+
+        #CARGA LA IMAGEN DE PARTIDA
+        self.image = self.portal_sprites[self.indice_sprite] #EMPIEZA SIEMPRE DIFERENTE
+
+        #OBTENGO LA RECTA (get.rect):
+        self.rect = self.image.get_rect() #POSICION DE LA RECTA
+        self.rect.bottomleft = (x,y) #A PARTIR DE: ABAJO A LA IZQUIERDA = (x,y)
+
+        #AGREGO AL GRUPO PRINCIPAL PARA QUE SE MUESTRE EL DIBUJO:
+        grupo_portal.add(self) 
 
 
     def update(self):
-        pass 
+
+        self.animacion(self.portal_sprites, .2)
+
 
     def animacion(self, sprite_lista, speed):
-        pass 
+        #sprite_list[]: Lista que contiene las animaciones correspondientes
+        #speed: Velocidad de la animacion
+
+        if self.indice_sprite < len(sprite_lista) -1: #RESTA EN UNO PARA QUE COINCIDA CON INDICE
+            self.indice_sprite += speed #AGREGO A LA VARIABLE LA VELOCIDAD
+
+        else:
+            self.indice_sprite = 0 #PARA QUE VUELVA A EMPEZAR
+
+        #ASEGURA DE QUE ESTAMOS CAMBIANDO NUESTRO VALOR ACTUAL DE SPRITE:
+
+        #ESTABLECE LA IMAGEN CON LA VARIABLE + EL SPEED DE LAS CONDICIONES:
+        self.image = sprite_lista[int(self.indice_sprite)]
+
 ############################################################################################
 
 #ALMACENAMIENTO DE LOS GRUPOS DE SPRITE
@@ -386,13 +474,14 @@ for i in range(len(mapa_mosaico)):
             RubyLogo(j*32, i*32, grupo_Mosaico)
             #COMO NO ES PARTE DE LA PLATAFORMA, VA AL GRUPO PRINCIPAL       
 
-        #PORTALES:
+        #PORTALES: VERDE
         elif mapa_mosaico[i][j] == 7:
-            pass 
+            Portal(j*32, i*32 + 35, "green", grupo_portal)
             #GRUPO PORTAL
 
+        #PORTALES: VIOLETA
         elif mapa_mosaico[i][j] == 8:
-            pass 
+            Portal(j*32, i*32 + 35, "purple", grupo_portal) 
             #GRUPO PORTAL
         
         #JUGADOR:
