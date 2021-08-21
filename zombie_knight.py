@@ -539,23 +539,353 @@ class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
 
 class Enemigo(pygame.sprite.Sprite): #ENEMIGO
 
-    def __init__(self): #Iniciar el enemigo
-        pass
+
+    def __init__(self, grupo_plataforma, grupo_portal, min_speed, max_speed): #Iniciar el enemigo
+        
+        super().__init__()
+
+        #VARIABLES CONSTANTES DE LOS ENEMIGOS:
+        self.ACELERACION_VERTICAL = 3 #GRAVEDAD
+        self.TIEMPO_TUMBADO = 2 #TIEMPO PARA LEVANTARSE
+        
+        #AGREGO VIDA AL ENEMIGO TESTEAR (¿Esta bien el incremento? ¿Poco? ¿Mucho?)
+        self.VIDA_INICIAL = 75 #VIDA DEL ENEMIGO          
+
+        #ANIMACION DE LOS FOTOGRAMAS - LISTAS VACIAS
+
+        self.movimiento_derecho_sprites = [] #MOVIMIENTO DERECHO
+        self.movimiento_izquierdo_sprites = [] #MOVIMIENTO IZQUIERDA
+
+        self.muerte_derecha_sprites = [] #MUERTE DERECHA
+        self.muerte_izquierda_sprites = [] #MUERZA IZQUIERDA
+
+        self.aturdido_derecho_sprites = [] #STUNS - ATURDIR DERECHO
+        self.aturdido_izquierdo_sprites = [] #STUNS - ATURDIR IZQUIERDO
+
+        #QUE ENEMIGOS VAN A SALIR: (EN ESTE CASO HOMBRE - MUJER)
+        #PERO SE PUEDE USAR PARA AGREGAR VARIAS CLASES DE ENEMIGOS
+        #CON PROPIEDADES DIFERENTES - SKINS - HABILIDADES, ETC.
+
+        genero = random.randint(0,1) #COMO SON 2 TIPOS, EL AZAR SON 2 OPCIONES
+
+        #0 = HOMBRE
+        #1 = MUJER
+
+        if genero == 0:
+
+            #ANIMACION - CAMINANDO DERECHA: ANEXAR A LA LISTA DE ANIMACIONES
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (1).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (2).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (3).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (4).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (5).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (6).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (7).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (8).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (9).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (10).png"),(64,64)))
+
+            #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+            for sprite in self.movimiento_derecho_sprites:
+                #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+                self.movimiento_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+
+            #ANIMACION - MUERTE DERECHA
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (1).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (2).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (3).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (4).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (5).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (6).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (7).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (8).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (9).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (10).png"),(64,64)))
+
+            #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+            for sprite in self.muerte_derecha_sprites:
+                #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+                self.muerte_izquierda_sprites.append(pygame.transform.flip(sprite, True, False))
+
+            #ANIMACION STUNS - ATURDIMIENTOS
+
+            #INVIERTE EL ORDEN DE LAS ANIMACIONES DE MUERTE PARA QUE "EMPIECE MUERTO Y TERMINE VIVO"
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (10).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (9).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (8).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (7).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (6).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (5).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (4).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (3).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (2).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (1).png"),(64,64)))
+
+            #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+            for sprite in self.aturdido_derecho_sprites:
+                #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+                self.aturdido_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+
+        else:
+
+            #ANIMACION - CAMINANDO DERECHA: ANEXAR A LA LISTA DE ANIMACIONES
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (1).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (2).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (3).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (4).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (5).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (6).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (7).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (8).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (9).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (10).png"),(64,64)))
+
+            #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+            for sprite in self.movimiento_derecho_sprites:
+                #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+                self.movimiento_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+
+            #ANIMACION - MUERTE DERECHA
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (1).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (2).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (3).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (4).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (5).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (6).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (7).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (8).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (9).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (10).png"),(64,64)))
+
+            #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+            for sprite in self.muerte_derecha_sprites:
+                #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+                self.muerte_izquierda_sprites.append(pygame.transform.flip(sprite, True, False))
+
+            #ANIMACION STUNS - ATURDIMIENTOS
+
+            #INVIERTE EL ORDEN DE LAS ANIMACIONES DE MUERTE PARA QUE "EMPIECE MUERTO Y TERMINE VIVO"
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (10).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (9).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (8).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (7).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (6).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (5).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (4).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (3).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (2).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (1).png"),(64,64)))
+
+            #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+            for sprite in self.aturdido_derecho_sprites:
+                #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+                self.aturdido_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+        
+        #MOVIMIENTO DE LOS ENEMIGOS: (ALEATORIOS)
+        self.direccion = random.choice([-1,1]) #SI SALE POR LA DERECHA O IZQUIERDA        
+
+        #SE USARA COMO INDICE DE LA LISTA - INDEX
+        self.indice_sprite = 0
+
+        if self.direccion == -1:
+            #CARGA LA IMAGEN DE PARTIDA
+            self.image = self.movimiento_izquierdo_sprites[self.indice_sprite] 
+        else:
+            self.image = self.movimiento_derecho_sprites[self.indice_sprite]         
+
+        #OBTENGO LA RECTA (get.rect): Es el recorrido del objeto - En este caso el ENEMIGO
+        self.rect = self.image.get_rect() #POSICION DE LA RECTA
+        self.rect.bottomleft = (random.randint(100, WIDTH - 100), - 100) #A PARTIR DE: ABAJO A LA IZQUIERDA = (x,y)
+
+        #GRUPOS SPRITES:
+        self.grupo_plataforma = grupo_plataforma
+        self.grupo_portal = grupo_portal
+
+        #BANDERAS PARA LOS EVENTOS DISPARADORES (MUERTE Y ATURDIMIENTO)
+        self.animacion_abatido = False
+        self.animacion_levantarse = False        
+
+        #CARGA DE SONIDOS
+        self.sonido_daño = pygame.mixer.Sound("sounds/zombie_hit.wav") #SONIDO AL DAÑARSE
+        self.sonido_eliminado = pygame.mixer.Sound("sounds/zombie_kick.wav") #SONIDO AL MORIR
+        self.sonido_portal = pygame.mixer.Sound("sounds/portal_sound.wav") #SONIDO DEL PORTAL
+
+        #VECTORES DE CINEMATICAS - AUXILIARES
+                
+        self.posicion = vector(self.rect.x,self.rect.y) #VECTOR DE POSICION
+
+        #SE MULTIPLICA POR LA direccion PARA DAR LA DIRECCION CORRECTA (POSITIVA O NEGATIVA)
+        self.velocidad = vector(self.direccion * random.randint(min_speed,max_speed),0) #VELOCIDAD DEL ENEMIGO       
+        self.aceleracion = vector(0, self.ACELERACION_VERTICAL) #ACELERACION Y GRAVEDAD
+
+        #VALORES INICIALES DEL ENEMIGO - INICIO - REINICIO
+        self.esta_abatido = False #ESTA MUERTO = FALSO
+        self.tiempo_ronda = 0 #TIEMPO DE RONDA
+        self.contador_fps = 0 #CONTEO DE FOTOGRAMAS
+
+        self.vida = self.VIDA_INICIAL #VIDA DEL ENEMIGO (TESTEAR)
+
+        #AGREGO AL GRUPO PRINCIPAL PARA QUE SE MUESTRE EL DIBUJO:
+        #grupo_principal.add(self)  
+
 
     def update(self): #Actualizar el enemigo
-        pass
+        
+        self.mover()
+        self.chequear_colisiones()
+        self.chequear_animaciones()
+
+        #Determina cuando el zombi debe levantarse despues de ser tumbado:
+
+        if self.esta_abatido: #TUMBADO = TRUE
+
+            self.contador_fps += 1
+
+            if self.contador_fps % FPS == 0: #CONTEO DIVISIBLE FPS == 0 - SI
+
+                self.tiempo_ronda += 1
+
+                if self.tiempo_ronda == self.TIEMPO_TUMBADO: #SI SON IGUALES EL ENEMIGO SE LEVANTA
+
+                    self.animacion_levantarse = True
+
+                    #Cuando el Enemigo es tumbado, la imagen se mantiene igual
+                    #Cuando se levanta tiene que comenzar en el indice cero de nuestro aumento:
+                    self.indice_sprite = 0
+
 
     def mover(self): #Movimiento del enemigo       
-        pass
+        
+            if not self.esta_abatido: #Mientras NO este muerto el Enemigo:
+
+                #Condicion para que sea la animacion correcta:
+                if self.direccion == -1:
+
+                    self.animacion(self.movimiento_izquierdo_sprites, 0.5) #Caminando para la izquierda
+
+                else:
+
+                    self.animacion(self.movimiento_derecho_sprites, 0.5) #Caminando para la derecha
+
+                #CALCULAR LOS VALORES DE LAS CINEMATICAS:      
+
+                #NO SE NECESITA ACTUALIZAR EL VECTOR DE ACELERACION PORQUE NUNCA CAMBIA.
+                
+                #MATEMATICA VECTORIAL (5, 2) + (6, 1) = (11, 3)
+                
+                self.velocidad += self.aceleracion #ACTUALIZA EL VECTOR DE VELOCIDAD
+
+                self.posicion += self.velocidad + 0.5 * self.aceleracion #ACTUALIZA EL VECTOR DE POSICION        
+
+                #ACTUALIZAR LA RECTA (rect) BASADA EN LOS CALCULOS CINEMATICOS:
+                
+                #CONDICIONES PARA QUE EL ENEMIGO PASE DE UN LADO A OTRO DE LA PANTALLA        
+
+                if self.posicion.x < 0: #Posicion ENEMIGO menor a 0
+
+                    self.posicion.x = WIDTH
+
+                elif self.posicion.x > WIDTH: #Posicion ENEMIGO mayor a la pantalla
+
+                    self.posicion.x = 0
+
+                #SE PUEDE CAMBIAR PARA QUE EL ENEMIGO NO PUEDA SALIR DE LA PANTALLA
+
+                #DESPUES DE QUE SE ACTUALICEN TODOS LOS VECTORES CORREGIMOS LA POSICION:
+
+                self.rect.bottomleft = self.posicion
+
 
     def chequear_colisiones(self): #Chequea las colisiones del enemigo con el entorno
-        pass
+
+        #spritecollide(Grupo a comprobar, Grupo A Colisionar, Desaparecer objeto al chocar?)
+        colision_plataforma = pygame.sprite.spritecollide(self, self.grupo_plataforma, False, pygame.sprite.collide_mask) #COMPRUEBA COLISION
+
+        #Tambien se puede usar para dañar al objeto colisionado
+        if colision_plataforma: #SI LA LISTA >> NO << ESTA VACIA:
+                
+            #IGUALA LA POSICION AL OBJETO QUE CHOCA + 1: DE REBOTE AL CHOCAR.
+            self.posicion.y = colision_plataforma[0].rect.top + 1
+            self.velocidad.y = 0 #ASEGURA QUE SE DEJE DE MOVER
+        
+        #Chequea las colisiones con los portales:
+        if pygame.sprite.spritecollide(self,self.grupo_portal, False, pygame.sprite.collide_mask):
+
+            self.sonido_portal.play() #Activa el sonido del portal
+
+            #Una vez que colisiona, determinar a que portal se movera:
+
+            #IZQUIERDA Y DERECHA:
+
+            #Si es mayor a la mitad HORIZONTAL, estas en el LADO DERECHO
+            if self.posicion.x > WIDTH / 2: #Centro de la pantalla Horizontalmente
+                self.posicion.x = 86 #Lleva al jugador a esta posicion
+            
+            else: #Por contrario estas en el LADO IZQUIERDO
+                self.posicion.x = WIDTH - 150 #150 Pixeles
+
+            #ARRIBA Y ABAJO:
+
+            #Si es mayor a la mitad VERTICAL, estas ARRIBA
+            if self.posicion.y > HEIGHT / 2: #Centro de la pantalla Verticalmente
+                self.posicion.y = 64 #Lleva al jugador a esta posicion
+            
+            else: #Por contrario estas ABAJO
+                self.posicion.y = HEIGHT - 132 #132 Pixeles
+
+            self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
+
 
     def chequear_animaciones(self): #Chequea las animaciones de muerte y ascenso
-        pass
+        
+        #ANIMACION MUERTE - TUMBADO:
+        if self.animacion_abatido:
+
+            if self.direccion == 1: #DIRECCION DERECHA
+                self.animacion(self.muerte_derecha_sprites, 0.95)
+
+            else: #DIRECCION IZQUIERDA
+                self.animacion(self.muerte_izquierda_sprites, 0.95)  
+
+        #ANIMACION "RESURECCION" - LEVANTARSE:
+        if self.animacion_levantarse: #LEVANTARSE = TRUE
+
+            if self.direccion == 1: #DIRECCION DERECHA
+                self.animacion(self.aturdido_derecho_sprites, 0.95)
+
+            else: #DIRECCION IZQUIERDA
+                 self.animacion(self.aturdido_izquierdo_sprites, 0.95)   
+
 
     def animacion(self, sprite_lista, speed): #Animaciones del enemigo
-        pass
+        #sprite_list[]: Lista que contiene las animaciones correspondientes
+        #speed: Velocidad de la animacion
+
+        if self.indice_sprite < len(sprite_lista) -1: #RESTA EN UNO PARA QUE COINCIDA CON INDICE
+            self.indice_sprite += speed #AGREGO A LA VARIABLE LA VELOCIDAD
+
+        else:
+            self.indice_sprite = 0 #PARA QUE VUELVA A EMPEZAR
+
+            #TERMINAR LA ANIMACION DE TUMBADO:
+            if self.animacion_abatido:
+                self.indice_sprite = len(sprite_lista) - 1
+                self.animacion_abatido = False #TERMINA EL BUCLE DE ANIMACION 
+
+            #TERMINAR LA ANIMACION DE RESURECCION - LEVANTARSE
+            if self.animacion_levantarse: #RESURECCION = TRUE                
+                self.animacion_levantarse = False #TERMINA EL BUCLE DE ANIMACION
+                self.esta_abatido = False #Para que no vuelva a TUMBARSE
+                #Condicion para que sea la animacion correcta:
+
+                #REINICIAR LAS VARIABLES DE SINCRONIZACION DE TIEMPO:
+                self.contador_fps = 0 #RECUENTO DE FPS REINICIAR
+                self.tiempo_ronda = 0 #REINICIAR                                               
+
+        #ASEGURA DE QUE ESTAMOS CAMBIANDO NUESTRO VALOR ACTUAL DE SPRITE:
+
+        #ESTABLECE LA IMAGEN CON LA VARIABLE + EL SPEED DE LAS CONDICIONES:
+        self.image = sprite_lista[int(self.indice_sprite)]
 
 ############################################################################################
 
@@ -895,6 +1225,12 @@ while running: #Mientras se este corriendo el juego:
                     #TESTEAR: SE HACE CADA VEZ MAS LENTO DISPARAR POR LA CADENCIA AUMENTADA
                     jugador.disparar() #DISPARAR
                     jugador.ultimo_disparo = primer_disparo #IMPORTANTE MODIFICAR EL VALOR
+            
+            #ELIMINAR FUNCION
+            if evento.key == pygame.K_RETURN: #ENTER
+                #CREACION DE LOS ENEMIGOS
+                enemigo = Enemigo(grupo_plataforma, grupo_portal, 2, 7)  
+                grupo_enemigo.add(enemigo)
 
     #Dibujar (blit) el fondo en la pantalla:    
     display.blit(background_image, backgroud_rect) #Superposicion (Fondo, Fondo recta)
