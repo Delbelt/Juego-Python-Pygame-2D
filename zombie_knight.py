@@ -39,17 +39,246 @@ class Juego():
 
     #pass = declaracion NULL de la implementacion
 
-    def __init__(self): #INIT DEL JUEGO
-        pass
+    def __init__(self, jugador, grupo_enemigo, grupo_plataforma, grupo_portal, grupo_proyectil, grupo_ruby): #INIT DEL JUEGO
+        
+        #VARIABLES CONSTANTES
+        self.TIEMPO_RONDA = 15 #Duracion de cada ronda
+        self.TIEMPO_SPAM_ENEMIGO = 5 #TIEMPO PARA SPAMEAR UN ENEMIGO
+
+        #VALORES DEL JUEGO:
+        self.score = 0 #PUNTUACION INICIAL
+        self.ronda_numero = 1 #INICIO DE RONDA
+        self.contador_fps = 0 #CONTEO DE FOTOGRAMAS
+        self.tiempo_ronda = self.TIEMPO_RONDA #Duracion de la ronda
+        self.tiempo_spam_enemigo = self.TIEMPO_SPAM_ENEMIGO #TIEMPO DE SPAM
+        self.modo_juego = False #TRUE = MODO ATURDIR - FALSE = MODO DAÑO
+
+        #MODO ATURDIR = CUANDO UN PROYECTIL COLISIONA CON EL ENEMIGO, LO ATURDE Y EL JUGADOR TIENE QUE "PISARLO" PARA ELIMINARLO
+        #MODO DAÑO = EL ENEMIGO RECIBE DAÑO POR PROYECTIL, TIENE UN LEVE RETROCESO POR DISPARO - EL ENEMIGO NO SE ATURDE, NI SE PISA.
+
+        #VALORES DE LAS FUENTE
+
+        self.titulo_fuente = pygame.font.Font("fonts/Poultrygeist.ttf", 48) #FUENTE DEL TITULO
+        self.HUD_fuente = pygame.font.Font("fonts/Pixel.ttf", 24) #FUENTE DE LA BARRA DE ESTADO
+
+        #SONIDOS:
+        self.perdida_ruby_sonido = pygame.mixer.Sound("sounds/lost_ruby.wav") #Choca con un enemigo
+        self.agarrar_ruby_sonido = pygame.mixer.Sound("sounds/ruby_pickup.wav") #Choca con nosotros
+        pygame.mixer.music.load("sounds/level_music.wav") #MUSICA DE FONDO     
+
+        #GRUPOS Y SPRITES:
+        self.jugador = jugador
+        self.grupo_enemigo = grupo_enemigo
+        self.grupo_plataforma = grupo_plataforma
+        self.grupo_portal = grupo_portal
+        self.grupo_proyectil = grupo_proyectil
+        self.grupo_ruby = grupo_ruby              
+
 
     def update(self): #ACTUALIZAR JUEGO
-        pass
+        
+        self.contador_fps += 1 #CUENTA LOS FPS
+
+        if self.contador_fps % FPS == 0: #CONDICION PARA IR RESTANDO TIEMPO A LA RONDA
+
+            self.tiempo_ronda -= 1 #Decrece el tiempo
+            self.contador_fps = 0
+
+        #CHEQUEAR LAS COLISIONES DEL JUEGO
+        self.chequear_colisiones()
+
+        #CREA AL ENEMIGO SI CUMPLE EL TIEMPO DE CREACION:
+        self.add_enemigo()
+
+        #TERMINA LA RONDA SI SE CUMPLE EL TIEMPO:
+        self.chequear_ronda_terminada()
+
+        #VERIFICA SI EL JUEGO TERMINO:
+        self.chequear_juego_terminado()
+
 
     def dibujar(self): #HUD (Head-UP Display) = BARRA DE ESTADO
-        pass        
-       
-    def chequear_colisiones(self): #CHEQUEA LAS COLISIONES DENTRO DEL JUEGO 
-        pass  
+        
+        #VALORES DE LOS COLORES:
+        WHITE = (255, 255, 255) #BLANCO
+        GREEN = (25, 200, 25) #VERDE
+
+        #TEXTOS DENTRO DEL JUEGO - HUD BARRAS DE ESTADO:
+
+        # topleft = ARRIBA A PARTIR DE LA IZQUIERDA
+        # topright = ARRIBA A PARTIR DE LA DERECHA
+        # center = CENTRO 
+        # Render(Texto, Anti-Aliasing, Color)             
+
+        score_texto = self.HUD_fuente.render("Score: " + str(self.score), True, WHITE) #DONDE MUESTRA EL PUNTAJE
+        score_rect = score_texto.get_rect() #OBTENGO LA POSICION DE LA RECTA
+        score_rect.topleft = (10, HEIGHT - 50) #POSICION DE LOS PUNTOS 
+
+        vida_texto = self.HUD_fuente.render("Vida: " + str(self.jugador.vida), True, WHITE) #VIDA EN PANTALLA
+        vida_rect = vida_texto.get_rect() #OBTENGO LA POSICION DE LA RECTA
+        vida_rect.topleft = (10, HEIGHT - 25) #POSICION DE LA VIDA  
+
+        titulo_texto = self.titulo_fuente.render("Zombie Knight", True, GREEN) #TITULO      
+        titulo_rect = titulo_texto.get_rect() #OBTENGO LA POSICION DE LA RECTA
+        titulo_rect.center = (WIDTH // 2, HEIGHT - 25) #POSICION TITULO DEL GIU
+
+        ronda_texto = self.HUD_fuente.render("Noche: " + str(self.ronda_numero), True, WHITE) #NUMERO DE RONDA
+        ronda_rect = ronda_texto.get_rect() #OBTENGO LA POSICION DE LA RECTA
+        ronda_rect.topright = (WIDTH - 10, HEIGHT - 50) #RONDAS COMPLETADAS
+
+        tiempo_text = self.HUD_fuente.render("Amanece en: " + str(self.tiempo_ronda), True, WHITE) #TIEMPO RESTANTE PARA QUE TERMINE LA NOCHE
+        tiempo_rect = tiempo_text.get_rect() #OBTENGO LA POSICION DE LA RECTA
+        tiempo_rect.topright = (WIDTH - 10, HEIGHT - 25)
+
+        #DIBUJOS DEL HUD - HAY QUE AGREGARLOS PARA QUE APAREZCAN:
+
+        display.blit(score_texto, score_rect) #DIBUJO: PUNTAJE
+        display.blit(vida_texto, vida_rect) #DIBUJO: VIDA
+        display.blit(titulo_texto, titulo_rect) #DIBUJO: TITULO
+        display.blit(ronda_texto, ronda_rect) #DIBUJO: RONDAS
+        display.blit(tiempo_text, tiempo_rect) #DIBUJO: TIEMPO
+
+
+    def add_enemigo(self): #AGREGA LOS ZOMBIES AL JUEGO
+        
+        #COMPROBAR EL TIEMPO:
+        if self.contador_fps % FPS == 0: #Si es igual, sabemos que paso 1 segundo
+
+            #Crear unicamente SI paso el tiempo de creacion:
+            if self.tiempo_ronda % self.tiempo_spam_enemigo == 0: #CREA SI SON DIVISIBLES
+                
+                #TESTEAR - VELOCIDAD DE LOS ENEMIGOS
+                                                                            #VELOCIDAD MINIMA  - VELOCIDAD MAXIMA
+                enemigo = Enemigo(self.grupo_plataforma, self.grupo_portal, self.ronda_numero, 5 + self.ronda_numero)
+                self.grupo_enemigo.add(enemigo)
+
+
+    def chequear_colisiones(self): #CHEQUEA LAS COLISIONES DENTRO DEL JUEGO
+        
+        #group-collide(Grupo 1, Grupo 2, Desaparece GRUPO 1?, Desaparece GRUPO 2?)
+        colision_dict = pygame.sprite.groupcollide(self.grupo_proyectil, self.grupo_enemigo, True, False) #Diccionario que guarda las colisiones        
+
+        if colision_dict: #SI HAY COLISION: 
+
+            for enemigos in colision_dict.values():
+                for enemigo in enemigos:
+
+                    #TESTEAR:
+
+                    # 1) SE PODRIA AGREGAR OTRO TIPO DE ATAQUE - MAS FUERTE - CON OTRA TECLA
+                    # 2) UNA POSIBILIDAD % DE ABATIR AL RIVAL EN EL MODO DAÑO                    
+                    # 3.1) SACAR MENOS DAÑO CADA RONDA
+                    # 3.2) ENEMIGO: SACAR EN CADA RONDA MAS DAÑO
+                    # 4) CUANDO MUERE UN ENEMIGO: AGREGAR UN PORCENTAJE PARA QUE SALGAN LOS POTENCIADORES Y CADA RONDA IR RESTANDOLA
+                    # 5) MODIFICAR LOS POTENCIADORES: A) UNO TE DA PUNTAJE (MAS POSIBILIDAD DE SALIR) B) UNO QUE DE VIDA (OTRA ANIMACION O COLOR) CON MENOS POSIBILIDAD DE SALIR (DENTRO DE LA POSIBILIDAD TOTAL)
+                    # 6) MODO ATURDIR: AGREGAR A LA ROTACION DE LADO: UN PORCENTAJE PARA QUE CAMBIE DE ORIENTACION Y NO EL 100% DE LOS DISPAROS
+                    # 7) MODO ATURDIR: EN BASE AL CASO DE USO: 6) DECRECER LA POSIBILIDAD DE CAMBIAR LA ORIENTACION AL DISPARARLE AL PASAR LAS RONDAS
+                    # 8) MODO ATURDIR: REUTILIZAR CASO DE USO: 2) PARA EL MODO ATURDIR, QUE NO ATURDA AL PRIMER DISPARO, QUE DISMINUYA LA POSIBILIDAD CADA RONDA
+                    # 9) PUNTAJE: QUE SEA DINAMICO EL PUNTAJE ENTRE UN RANGO DE PUNTOS Y NO ESTATICO
+                    # 10) ENEMIGOS Y LOS POTENCIADORES: ¿MODIFICAR EL EFECTO? ¿AGREGARLE ALGO MAS? ¿POTENCIAR AL ENEMIGO? ¿OTRO?                 
+                                        
+                    #MODO JUEGO: #TRUE = MODO ATURDIR - FALSE = MODO DAÑO 
+                                          
+                    enemigo.sonido_daño.play()
+                    enemigo.esta_abatido = self.modo_juego #ENEMIGO TUMBADO #SIN ESTO EL ZOMBIE SIGUE EN PIE - AL ESTAR ASOCIADO AL MODO DE JUEGO SE CAMBIA "AUTOMATICO"
+                    enemigo.animacion_abatido = self.modo_juego #ANIMACION DE TUMBADO #SIN ESTO NO HAY ANIMACION - AL ESTAR ASOCIADO AL MODO DE JUEGO SE CAMBIA "AUTOMATICO"                                                                                 
+                                                            
+                    #RETROCEDE LOS ENEMIGOS DEPENDIENDO DONDE ESTE UBICADO EL JUGADOR:     
+                                    
+                    if self.jugador.velocidad.x < 0: #SI EL JUGADOR ESTA EN LA DERECHA:                                          
+                        
+                        if not self.modo_juego: #CONDICION MODO DAÑO
+
+                            enemigo.posicion.x -= 20 #LO RETROCEDE PARA LA IZQUIERDA + CUANTO RETROCESO
+                            enemigo.rect.bottomleft = enemigo.posicion
+
+                            enemigo.vida -= 50 #CADA DISPARO LE SACA VIDA AL ENEMIGO - 3) SACAR MENOS DAÑO CADA RONDA  
+
+                            if enemigo.vida <= 0: #SI SE QUEDA SIN VIDA:
+                                    enemigo.sonido_eliminado.play()                                           
+                                    enemigo.kill() #ELIMINA AL ZOMBIE
+                                    self.score += 25 #SUMA PUNTAJE
+
+                                    #Crea un potenciador cuando matamos un enemigo
+                                    #5) Modificar la posibilidad de salida de los potenciadores
+                                    
+                            
+                        if enemigo.direccion == 1 and self.modo_juego:  #SI EL ZOMBIE VA PARA LA DERECHA: - (PARA EVITAR QUE ROTE EN CADA GOLPE) - MODO ATURDIR                           
+
+                                enemigo.direccion = enemigo.direccion * -1 #CAMBIA LA ORIENTACION DE LA ANIMACION
+                                enemigo.velocidad = enemigo.velocidad * -1 #CAMBIA LA ORIENTACION DE MOVIMIENTO (SI IBA A LA DERECHA, VA A LA IZQUIERDA, ETC)                                                  
+
+                    else: #SI EL JUGADOR ESTA EN LA IZQUIERDA
+
+                            if not self.modo_juego: #CONDICION MODO DAÑO
+                                enemigo.posicion.x += 20 #LO RETROCEDE PARA LA IZQUIERDA
+                                enemigo.rect.bottomleft =  enemigo.posicion
+
+                                enemigo.vida -= 50 #CADA DISPARO LE SACA VIDA AL ENEMIGO - 3) SACAR MENOS DAÑO CADA RONDA  
+
+                                if enemigo.vida <= 0: #SI SE QUEDA SIN VIDA:
+
+                                    enemigo.sonido_eliminado.play()                                           
+                                    enemigo.kill() #ELIMINA AL ZOMBIE
+                                    self.score += 25 #SUMA PUNTAJE
+
+                                    #Crea un potenciador cuando matamos un enemigo
+                                    #5) Modificar la posibilidad de salida de los potenciadores
+                                    
+
+                            if enemigo.direccion == -1 and self.modo_juego: #SI EL ZOMBIE VA PARA LA IZQUIERDA - PARA EVITAR QUE ROTE EN CADA GOLPE - MODO ATURDIR
+
+                                enemigo.direccion = enemigo.direccion * -1 #CAMBIA LA ORIENTACION DE LA ANIMACION
+                                enemigo.velocidad = enemigo.velocidad * -1 #CAMBIA LA ORIENTACION DE MOVIMIENTO (SI IBA A LA DERECHA, VA A LA IZQUIERDA, ETC)
+                                
+        #SI UN JUGADOR PISA EL ENEMIGO (MODO ABATIR) O CHOCO CON OTRO ENEMIGO:
+        lista_colision = pygame.sprite.spritecollide(self.jugador, self.grupo_enemigo, False)
+
+        if lista_colision: #RECORRE LA LISTA:
+            for enemigo in lista_colision:
+                
+                if enemigo.esta_abatido == True: #Si el enemigo esta tumbado: - Por lo tanto, si el "MODO DAÑO" esta activado, esta se desactiva
+
+                    enemigo.sonido_eliminado.play() #Sonido de eliminar
+                    enemigo.kill() #Elimina el objeto
+                    self.score += 25 #Agrega N puntos por eliminarlo
+
+                    #Crea un potenciador cuando matamos un enemigo
+                    ruby = Ruby(self.grupo_plataforma, self.grupo_portal)
+                    self.grupo_ruby.add(ruby)
+
+                else: #SI EL ENEMIGO NOS TOCA:
+
+                    self.jugador.vida -= 20 #Nos resta N puntos de vida
+                    self.jugador.sonido_daño.play() #Sonido de daño 
+
+                    #EVITAR QUE EL JUGADOR SIGA RECIBIENDO DAÑO CONTINUO:
+                    self.jugador.posicion.x -= 200 * enemigo.direccion #LO DESPLAZA AL JUGADOR A OTRA POSICION  - TESTEAR
+                    self.jugador.rect.bottomleft = self.jugador.posicion
+        
+        #SI EL JUGADOR COLISIONA CON EL POTENCIADOR        
+        if pygame.sprite.spritecollide(self.jugador, self.grupo_ruby, True): #True porque queremos que desaparezca cuando colisiona
+            
+            self.agarrar_ruby_sonido.play() #Reproduce la musica cuando AGARRA el potenciador
+            self.score += 100 #La puntuacion que aumenta
+            self.jugador.vida += 10 #La vida que otorga al jugador
+
+            #Si la vida del potenciador supera la inicial: #SE PUEDE QUITAR O MODIFICAR EN EL FUTURO
+            if self.jugador.vida > self.jugador.VIDA_INICIAL:
+                self.jugador.vida = self.jugador.VIDA_INICIAL #Le asigna la vida limite establecida
+
+        #SI EL ENEMIGO COLISIONA CON EL POTENCIADOR 
+        for enemigo in self.grupo_enemigo: #RECORRE TODOS LOS ENEMIGOS
+
+            if enemigo.esta_abatido == False: #El enemigo NO puede estar aturdido para agarrar el BUFF
+
+                if pygame.sprite.spritecollide(enemigo, self.grupo_ruby, True): #True porque queremos que desaparezca cuando colisiona
+            
+                    self.perdida_ruby_sonido.play() #Reproduce la musica cuando ROMPEN el potenciador
+                    #AGREGA UN ENEMIGO AL JUEGO, SI LO AGARRAN ELLOS:                    
+                    enemigo = Enemigo(self.grupo_plataforma, self.grupo_portal, self.ronda_numero, 5 + self.ronda_numero)
+                    self.grupo_enemigo.add(enemigo)                 
+  
     
     def add_enemigo(self):
         pass       
@@ -1196,6 +1425,10 @@ backgroud_rect = background_image.get_rect() #RECTA (Rect) DEL SPRITE (0,0)
 backgroud_rect.topleft = (0, 0) #POSICIONA DESDE ARRIBA-IZQUIERDA LA RECTA (Rect) DEL SPRITE
 
 #CREACION DEL JUEGO
+juego = Juego(jugador, grupo_enemigo, grupo_plataforma, grupo_portal, grupo_proyectil, grupo_ruby)
+juego.pausar_juego("Bienvenido", "Presiona 'Enter' para ingresar") #ESPERA EN LA INTERFACE DE PAUSA
+pygame.mixer.music.play(-1, 0.0) # -1 INFINITO, INICIO DE MUSICA
+pygame.mixer.music.set_volume(0.05) #VOLUMEN DESDE: 0.1 a 1.0 puede estirarse: 0.0001, 0.000009 etc
 
 #AGREGAR EN LOS EVENTOS TECLAS PARA BAJAR O SUBIR EL VOLUMEN
 
@@ -1259,6 +1492,8 @@ while running: #Mientras se este corriendo el juego:
     grupo_ruby.draw(display)
 
     #ACTUALIZACION Y DIBUJO DEL JUEGO:
+    juego.update()
+    juego.dibujar()    
 
     #Actualiza la pantalla y los frames:
     pygame.display.update() #Actualiza la pantalla
