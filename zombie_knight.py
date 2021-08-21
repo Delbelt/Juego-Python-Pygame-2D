@@ -881,11 +881,10 @@ class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
                     if jugador.posicion.x > WIDTH / 2:                        
                         jugador.sonido_portal.play() #Activa el sonido del portal
                         #Una vez que colisiona, determinar a que portal se movera 
-       
+
 ############################################################################################    
 
 class Enemigo(pygame.sprite.Sprite): #ENEMIGO
-
 
     def __init__(self, grupo_plataforma, grupo_portal, min_speed, max_speed): #Iniciar el enemigo
         
@@ -896,7 +895,7 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
         self.TIEMPO_TUMBADO = 2 #TIEMPO PARA LEVANTARSE
         
         #AGREGO VIDA AL ENEMIGO TESTEAR (¿Esta bien el incremento? ¿Poco? ¿Mucho?)
-        self.VIDA_INICIAL = 75 #VIDA DEL ENEMIGO          
+        self.VIDA_INICIAL = 75 + (25 * juego.ronda_numero) #VIDA DEL ENEMIGO          
 
         #ANIMACION DE LOS FOTOGRAMAS - LISTAS VACIAS
 
@@ -1633,20 +1632,20 @@ for i in range(len(mapa_mosaico)):
         #RUBY MAKER:
         elif mapa_mosaico[i][j] == 6:
             RubyLogo(j*32, i*32, grupo_Mosaico)
-            #COMO NO ES PARTE DE LA PLATAFORMA, VA AL GRUPO PRINCIPAL       
+            #COMO NO ES PARTE DE LA PLATAFORMA, VA AL GRUPO PRINCIPAL         
 
-        #PORTALES: VERDE
+        #PORTALES:
         elif mapa_mosaico[i][j] == 7:
             Portal(j*32, i*32 + 35, "green", grupo_portal)
             #GRUPO PORTAL
 
-        #PORTALES: VIOLETA
         elif mapa_mosaico[i][j] == 8:
             Portal(j*32, i*32 + 35, "purple", grupo_portal) 
             #GRUPO PORTAL
         
         #JUGADOR:
         elif mapa_mosaico[i][j] == 9:
+
             #(32 - 25 = POSICION IZQUIERDA) ---- (32 + 35 = POSICION ARRIBA O ABAJO)    
             jugador = Jugador(j*32 - 25, i*32 + 32, grupo_plataforma, grupo_portal, grupo_proyectil) 
             grupo_jugador.add(jugador)
@@ -1683,7 +1682,7 @@ while running: #Mientras se este corriendo el juego:
             running = False #Termina el ciclo del juego
 
         if evento.type == pygame.KEYDOWN:
-        #El evento KEYDOWN se produce cuando se presiona una tecla:    
+            #El evento KEYDOWN se produce cuando se presiona una tecla:
 
             if evento.key == pygame.K_SPACE: #BARRA ESPACIADORA
                 jugador.salto() #SALTAR
@@ -1693,21 +1692,22 @@ while running: #Mientras se este corriendo el juego:
                 primer_disparo = pygame.time.get_ticks()
                 
                 #CONTROLA LA VELOCIDAD DE LAS RAFAGAS
-                if primer_disparo - jugador.ultimo_disparo > jugador.CADENCIA: 
+                if primer_disparo - jugador.ultimo_disparo > jugador.CADENCIA + (juego.ronda_numero * 25): 
                     #TESTEAR: SE HACE CADA VEZ MAS LENTO DISPARAR POR LA CADENCIA AUMENTADA
+
                     jugador.disparar() #DISPARAR
                     jugador.ultimo_disparo = primer_disparo #IMPORTANTE MODIFICAR EL VALOR
-            
+
             #ELIMINAR FUNCION
             if evento.key == pygame.K_RETURN: #ENTER
                 #CREACION DE LOS ENEMIGOS
                 enemigo = Enemigo(grupo_plataforma, grupo_portal, 2, 7)  
-                grupo_enemigo.add(enemigo)
+                grupo_enemigo.add(enemigo) 
 
             #PAUSA
             if evento.key == pygame.K_p: #P
                 #Pausa el juego                
-                juego.pausar_juego("Juego en PAUSA!","Presiona 'P' para continuar")  
+                juego.pausar_juego("Juego en PAUSA!","Presiona 'P' para continuar")   
 
     #Dibujar (blit) el fondo en la pantalla:    
     display.blit(background_image, backgroud_rect) #Superposicion (Fondo, Fondo recta)
