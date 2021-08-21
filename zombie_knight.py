@@ -201,14 +201,58 @@ class RubyLogo(pygame.sprite.Sprite): #Animacion del LOGO del juego - PODRIA SER
     #QUIZAS PODRIA SER OTRO OBJETO O SIMPLEMENTE QUITARLO
     #PERO SE PODRIA AAGREGAR UN LOGO O ALGO EN SU REEMPLAZO
 
-    def __init__(self):
-        pass
+    def __init__(self, x, y, grupo_principal):
+        
+        super().__init__()
+
+        #ANIMACION DE LOS FRAMES DEL RUBY
+        self.logo_sprites = []
+
+        #ANIMACION GIRATORIA:
+
+        #ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile000.png"),(54,54)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile001.png"),(54,54)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile002.png"),(54,54)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile003.png"),(54,54)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile004.png"),(54,54)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile005.png"),(54,54)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile006.png"),(54,54)))
+        
+        #SE USARA COMO INDICE DE LA LISTA - INDEX
+        self.indice_sprite = 0
+
+        #CARGA LA IMAGEN DE PARTIDA
+        self.image = self.logo_sprites[self.indice_sprite] 
+
+        #OBTENGO LA RECTA (get.rect):
+        self.rect = self.image.get_rect() #POSICION DE LA RECTA
+        self.rect.bottomleft = (x,y) #A PARTIR DE: ABAJO A LA IZQUIERDA = (x,y)
+
+        #AGREGO AL GRUPO PRINCIPAL PARA QUE SE MUESTRE EL DIBUJO:
+        grupo_principal.add(self)        
+
 
     def update(self):
-        pass
 
-    def animacion(self): #Animacion del Ruby
-        pass
+        self.animacion(self.logo_sprites, 0.25) # 0.25 ANIMACION GIRATORIA
+        # .25 O 0.25 = 1/4 ---> TOMARA 4 BUCLES PARA MOVERSE HACIA EL SIGUIENTE FOTOGRAMA
+
+
+    def animacion(self, sprite_list, speed): #Animacion del Ruby
+        #sprite_list[]: Lista que contiene las animaciones correspondientes
+        #speed: Velocidad de la animacion
+
+        if self.indice_sprite < len(sprite_list) -1: #RESTA EN UNO PARA QUE COINCIDA CON INDICE
+            self.indice_sprite += speed #AGREGO A LA VARIABLE LA VELOCIDAD
+
+        else:
+            self.indice_sprite = 0 #PARA QUE VUELVA A EMPEZAR
+
+        #ASEGURA DE QUE ESTAMOS CAMBIANDO NUESTRO VALOR ACTUAL DE SPRITE:
+
+        #ESTABLECE LA IMAGEN CON LA VARIABLE + EL SPEED DE LAS CONDICIONES:
+        self.image = sprite_list[int(self.indice_sprite)]
 
 ############################################################################################
 
@@ -339,8 +383,8 @@ for i in range(len(mapa_mosaico)):
         
         #RUBY MAKER:
         elif mapa_mosaico[i][j] == 6:
-            pass 
-            #COMO NO ES PARTE DE LA PLATAFORMA, VA AL GRUPO PRINCIPAL         
+            RubyLogo(j*32, i*32, grupo_Mosaico)
+            #COMO NO ES PARTE DE LA PLATAFORMA, VA AL GRUPO PRINCIPAL       
 
         #PORTALES:
         elif mapa_mosaico[i][j] == 7:
