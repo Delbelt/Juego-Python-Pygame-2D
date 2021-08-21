@@ -132,45 +132,408 @@ class Mosaico(pygame.sprite.Sprite): #Clase que representa el MAPA MOSAICO de 32
 
 class Jugador(pygame.sprite.Sprite): #JUGADOR
 
-    def __init__(self): #Iniciar el jugador
-        pass        
-       
+    def __init__(self, x, y, grupo_plataforma, grupo_portal, grupo_proyectil): #Iniciar el jugador
+        
+        super().__init__()
+
+        #CONSTANTES DEL JUGADOR:
+        self.VELOCIDAD_HORIZONTAL = 2 #VELOCIDAD DEL JUGADOR
+        self.FRICCION_HORIZONTAL = 0.15 #FRICCION EN EL DESPLAZAMIENTO (RESBALON)
+        self.ACELERACION_VERTICAL = 0.8 #GRAVEDAD
+        self.FUERZA_SALTO = 18 #QUE TAN ALTO SE PUEDE SALTAR
+        self.VIDA_INICIAL = 100 #VIDA DEL PERSONAJE
+        self.CADENCIA = 100 #VELOCIDAD DE DISPARO - MILISEGUNDOS
+
+        #ANIMACION DE LOS FOTOGRAMAS - LISTAS VACIAS:
+        self.movimiento_derecho_sprites = [] #MOVIMIENTO DERECHO
+        self.movimiento_izquierdo_sprites = [] #MOVIMIENTO IZQUIERDO
+
+        self.inactivo_derecho_sprites = [] #INACTIVIDAD DERECHO 
+        self.inactivo_izquierdo_sprites = [] #INACTIVIDAD IZQUIERDO
+
+        self.salto_derecho_sprites = [] #SALTO DERECHO
+        self.salto_izquierdo_sprites = [] #SALTO IZQUIERDO
+
+        self.ataque_derecho_sprites = [] #ATAQUE DERECHO
+        self.ataque_izquierdo_sprites = [] #ATAQUE IZQUIERDO
+
+        #### ANIMACIONES ####
+
+        #MOVIMIENTOS: ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
+
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (1).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (2).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (3).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (4).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (5).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (6).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (7).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (8).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (9).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (10).png"), (64,64)))
+
+        #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+        for sprite in self.movimiento_derecho_sprites:
+
+            #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+            self.movimiento_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+
+        #INACTIVO: ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
+
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (1).png"), (64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (2).png"), (64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (3).png"), (64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (4).png"), (64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (5).png"), (64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (6).png"), (64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (7).png"), (64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (8).png"), (64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (9).png"), (64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (10).png"),(64,64)))
+        
+
+       #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+        for sprite in self.inactivo_derecho_sprites:
+
+            #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+            self.inactivo_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+
+        #SALTO: ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
+
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (1).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (2).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (3).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (4).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (5).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (6).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (7).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (8).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (9).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (10).png"), (64,64)))
+
+        #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+        for sprite in self.salto_derecho_sprites:
+
+            #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+            self.salto_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+
+        #ATAQUE: ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
+
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (1).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (2).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (3).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (4).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (5).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (6).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (7).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (8).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (9).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (10).png"), (64,64)))
+
+        #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+        for sprite in self.ataque_derecho_sprites:
+
+            #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+            self.ataque_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+
+        #SE USARA COMO INDICE DE LA LISTA - INDEX
+        self.indice_sprite = 0
+
+        #CARGA LA IMAGEN DE PARTIDA
+        self.image = self.inactivo_derecho_sprites[self.indice_sprite] 
+
+        #OBTENGO LA RECTA (get.rect): Es el recorrido del objeto - En este caso el jugador
+        self.rect = self.image.get_rect() #POSICION DE LA RECTA
+        self.rect.bottomleft = (x,y) #A PARTIR DE: ABAJO A LA IZQUIERDA = (x,y)
+
+        #GRUPOS SPRITES:
+        self.grupo_plataforma = grupo_plataforma
+        self.grupo_portal = grupo_portal
+        self.grupo_proyectil = grupo_proyectil
+
+        #BANDERAS PARA LOS EVENTOS DISPARADORES (DISPARAR Y SALTAR)
+        self.animacion_salto = False
+        self.animacion_disparo = False
+
+        #CARGA DE SONIDOS
+        self.sonido_salto = pygame.mixer.Sound("sounds/jump_sound.wav") #SONIDO AL SALTAR
+        self.sonido_disparo = pygame.mixer.Sound("sounds/slash_sound.wav") #SONIDO AL DISPARAR
+        self.sonido_portal = pygame.mixer.Sound("sounds/portal_sound.wav") #SONIDO PORTAL
+        self.sonido_daño = pygame.mixer.Sound("sounds/player_hit.wav") #SONIDO AL DAÑARSE
+
+        #VECTORES DE CINEMATICAS - AUXILIARES
+                
+        self.posicion = vector(x,y) #VECTOR DE POSICION
+        self.velocidad = vector(0,0) #VELOCIDAD INICIAL Y VELOCIDAD DE ARRESTRE (NO SE DESPLAZA SOLO)
+        self.aceleracion = vector(0, self.ACELERACION_VERTICAL) #ACELERACION Y GRAVEDAD
+
+        #VALORES INICIALES DEL JUGADOR - INICIO - REINICIO
+
+        self.vida = self.VIDA_INICIAL
+        self.posicion_inicial_x = x #POSICION COORDENADA X
+        self.posicion_inicial_y = y #POSICION COORDENADA Y
+        self.ultimo_disparo = 0 #TIEMPO INICIAL DE DISPARO
+
+
     def update(self): #Actualizar el jugador
-        pass
+
+        #SE ELIGE SEPARAR LAS FUNCIONES PARA TENER UN MEJOR CONTROL DE CADA UNA:
+
+        self.mover() #MOVIMIENTO DEL JUGADOR
+        self.chequear_colisiones() #CHEQUEA LAS COLISIONES
+        self.chequear_animaciones() #CHEQUEA LAS ANIMACIONES (SI TIENE QUE DISPARAR EVENTO)
+
+        #CREACION DE LA MASCARA PARA MEJORAR LA PRECISION DE LAS COLISIONES
+        self.mascara = pygame.mask.from_surface(self.image)
+    
 
     def mover(self): #Movimiento del jugador
-        pass
+        
+        #VECTOR DE ACELERACION
+        self.aceleracion = vector(0, self.ACELERACION_VERTICAL)
+
+        #PULSACION DE TECLAS: ESTABLECE EL COMPONENTE DE ACELERACION != DE CERO
+
+        teclas = pygame.key.get_pressed() #TECLAS = VERIFICA SI SE TOCO UNA TECLA
+
+        if teclas[pygame.K_LEFT]: #SE PULSO LA IZQUIERDA? SI:
+
+            self.aceleracion.x = -1 * self.VELOCIDAD_HORIZONTAL
+            self.animacion(self.movimiento_izquierdo_sprites, 0.5) #AGREGO LA ANIMACION AL MOVIMIENTO
+
+        elif teclas[pygame.K_RIGHT]: #SE PULSO LA DERECHA? SI:
+
+            self.aceleracion.x = self.VELOCIDAD_HORIZONTAL
+            self.animacion(self.movimiento_derecho_sprites, 0.5) #AGREGO LA ANIMACION AL MOVIMIENTO
+
+        else: #SI NO ESTOY TOCANDO NINGUNA TECLA ENTONCES: (REPOSO)
+
+            if self.velocidad.x > 0: #Significa que el movimiento era hacia la derecha -->
+                self.animacion(self.inactivo_derecho_sprites, 0.5) #MOVIMIENTO INACTIVO DERECHO
+
+            else: #Entonces se estaba moviendo hacia la izquierda <--
+                self.animacion(self.inactivo_izquierdo_sprites, 0.5) #MOVIMIENTO INACTIVO IZQUIERDO
+
+        #CALCULAR LOS VALORES DE LAS CINEMATICAS:        
+
+        #CUANTO MAS RAPIDO NOS MOVEMOS MAS FRICCION RECIBIMOS:
+        self.aceleracion.x -= self.velocidad.x * self.FRICCION_HORIZONTAL #AÑADIMOS FRICCION
+        
+        #MATEMATICA VECTORIAL (5, 2) + (6, 1) = (11, 3)
+        
+        self.velocidad += self.aceleracion #ACTUALIZA EL VECTOR DE VELOCIDAD
+
+        self.posicion += self.velocidad + 0.5 * self.aceleracion #ACTUALIZA EL VECTOR DE POSICION        
+
+        #ACTUALIZAR LA RECTA (rect) BASADA EN LOS CALCULOS CINEMATICOS:
+        
+        #CONDICIONES PARA QUE EL JUGADOR PASE DE UN LADO A OTRO DE LA PANTALLA        
+
+        if self.posicion.x < 0: #Posicion Jugador menor a 0
+
+            self.posicion.x = WIDTH
+
+        elif self.posicion.x > WIDTH: #Posicion Jugador mayor a la pantalla
+
+            self.posicion.x = 0
+
+        #SE PUEDE CAMBIAR PARA QUE EL JUGADOR NO PUEDA SALIR DE LA PANTALLA - INVIRTIENDO LOS COMPARADORES < >
+
+        #DESPUES DE QUE SE ACTUALICEN TODOS LOS VECTORES CORREGIMOS LA POSICION:
+
+        self.rect.bottomleft = self.posicion
+
 
     def chequear_colisiones(self): #Chequea las colisiones del jugador con el entorno
-        pass
+        
+        if self.velocidad.y > 0:
+            #spritecollide(Grupo a comprobar, Grupo A Colisionar, Desaparecer objeto al chocar?, + mascara)
+            colision_plataforma = pygame.sprite.spritecollide(self, self.grupo_plataforma, False, pygame.sprite.collide_mask) #COMPRUEBA COLISION
+            #pygame.sprite.collide_mask = MASCARA DE PRECISION FRENTE A LAS COLISIONES - CONECTADO CON CLASE: MOSAICO
+
+            #Tambien se puede usar para dañar al objeto colisionado
+            if colision_plataforma: #SI LA LISTA >> NO << ESTA VACIA:
+                
+                #IGUALA LA POSICION AL OBJETO QUE CHOCA + NUMERO: DE REBOTE AL CHOCAR.
+                self.posicion.y = colision_plataforma[0].rect.top + 7 #+ NUMERO = VIBRACION DE COLISION
+                self.velocidad.y = 0 #ASEGURA QUE SE DEJE DE MOVER 
+
+        #Chequea las colisiones cuando el jugador esta saltando:
+        if self.velocidad.y < 0:
+            colision_plataforma = pygame.sprite.spritecollide(self,self.grupo_plataforma, False, pygame.sprite.collide_mask)    
+
+            if colision_plataforma: #Si colisiona:
+                self.velocidad.y= 0 #ASEGURA QUE SE DEJE DE MOVER
+                
+                # BUCLE - MOVIMIENTO INCREMENTAL DE LA POSICION DEL JUGADOR:
+                # While: Mientras el jugador colisione con algun objeto de la plataforma:
+                while pygame.sprite.spritecollide(self, self.grupo_plataforma, False, pygame.sprite.collide_mask):
+                    
+                    self.posicion.y += 1 #POSICION DEL JUGADOR + N PIXEL
+                    self.rect.bottomleft = self.posicion #SALTA, COLISIONA, Y LUEGO CAE
+        
+        #Chequea las colisiones con los portales:
+        if pygame.sprite.spritecollide(self, self.grupo_portal, False, pygame.sprite.collide_mask):
+
+            self.sonido_portal.play() #Activa el sonido del portal
+
+            #Una vez que colisiona, determinar a que portal se movera:
+
+            #IZQUIERDA Y DERECHA:
+
+            #Si es mayor a la mitad HORIZONTAL, estas en el LADO DERECHO
+            if self.posicion.x > WIDTH / 2: #Centro de la pantalla Horizontalmente
+                #Desde ABAJO a la DERECHA (Portal verde) a IZQUIERDA ARRIBA
+                #Desde ARRIBA a la DERECHA (Portal violeta) a IZQUIERDA ABAJO 
+                self.posicion.x = 86 #Lleva al jugador a esta posicion
+            
+            else: #Por contrario estas en el LADO IZQUIERDO
+                self.posicion.x = WIDTH - 150 #150 Pixeles
+                #Desde ARRIBA a la IZQUERDA (Portal verde) a DERECHA ABAJO
+                #Desde ABAJO a la IZQUIERDA (Portal violeta) a ARRIBA DERECHA
+
+            #ARRIBA Y ABAJO:
+
+            #Si es mayor a la mitad VERTICAL, estas ARRIBA
+            if self.posicion.y > HEIGHT / 2: #Centro de la pantalla Verticalmente
+                self.posicion.y = 64 #Lleva al jugador a esta posicion
+            
+            else: #Por contrario estas ABAJO
+                self.posicion.y = HEIGHT - 132 #132 Pixeles
+
+            self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
+
 
     def chequear_animaciones(self): #Chequea las animaciones de salto y disparo
-        pass
+        
+        #CHEQUEO DE SALTO:
+        if self.animacion_salto: #La animacion de SALTO esta activada? SI:
+
+            if self.velocidad.x > 0: #Significa que el movimiento era hacia la derecha -->
+                self.animacion(self.salto_derecho_sprites, 0.1) #MOVIMIENTO SALTO DERECHO
+
+            else: #Significa que el movimiento era hacia la izquierda <--
+                self.animacion(self.salto_izquierdo_sprites, 0.1) #MOVIMIENTO SALTO IZQUIERDO
+
+        #CHEQUEO DE DISPARO:
+        if self.animacion_disparo: #La animacion de DISPARO esta activada? SI:
+
+            if self.velocidad.x > 0: #Significa que el movimiento era hacia la derecha -->
+                self.animacion(self.ataque_derecho_sprites, 0.25) #MOVIMIENTO SALTO DERECHO
+
+            else: #Significa que el movimiento era hacia la izquierda <--
+                self.animacion(self.ataque_izquierdo_sprites, 0.25) #MOVIMIENTO SALTO IZQUIERDO
+
 
     def salto(self): #Salto del jugador
-        pass
+        
+        #El jugador esta colisionando con algun objeto de la plataforma?
+        if pygame.sprite.spritecollide(self, self.grupo_plataforma, False): #SI:
+            
+            self.sonido_salto.play() #Reproduce el sonido del salto
+            #Para saltar: nuestra velocidad de salto VERTICAL tiene que ser negativa:
+            self.velocidad.y = -1 * self.FUERZA_SALTO
+            #Activo la animacion de salto:
+            self.animacion_salto = True
+
 
     def disparar(self): #Disparo del jugador
-        pass
+        
+        self.sonido_disparo.play() #Reproduce el sonido del disparo
+        #Le paso a la clase: las coordenadas del jugador, el grupo y el jugador
+        Proyectil(self.rect.centerx, self.rect.centery, self.grupo_proyectil, self)
+        self.animacion_disparo = True #Activa la bandera de disparo
+
 
     def reiniciar(self): #Restablece la posicion del jugador
-        pass
+        
+        self.velocidad = vector(0,0) #REINICIO LA VELOCIDAD
+        self.posicion = vector(self.posicion_inicial_x, self.posicion_inicial_y) #GUARDO LA POSICION CON LOS VALORES INICIALES
+        self.rect.bottomleft = self.posicion #LLEVO AL JUGADOR A LA POSICION INICIAL
 
-    def animacion(self): #Animaciones del jugador
-        pass
+
+    def animacion(self, sprite_lista, velocidad): #Animaciones del jugador
+
+        #sprite_list[]: Lista que contiene las animaciones correspondientes
+
+        if self.indice_sprite < len(sprite_lista) -1: #RESTA EN UNO PARA QUE COINCIDA CON INDICE
+            self.indice_sprite += velocidad #AGREGO A LA VARIABLE LA VELOCIDAD
+
+        else:
+            self.indice_sprite = 0 #PARA QUE VUELVA A EMPEZAR
+
+            #COMPROBAR QUE TERMINO LA ANIMACION DE SALTO:
+            if self.animacion_salto: #SI ESTA ACTIVADO LA ANIMACION:
+                self.animacion_salto = False #LA DESACTIVA PORQUE O SINO TIENDE AL INFINITO
+
+            #COMPROBAR QUE TERMINO LA ANIMACION DE DISPARO:
+            if self.animacion_disparo: #SI ESTA ACTIVADO LA ANIMACION:
+                self.animacion_disparo = False #LA DESACTIVA PORQUE O SINO TIENDE AL INFINITO                     
+
+        #ASEGURA DE QUE ESTAMOS CAMBIANDO NUESTRO VALOR ACTUAL DE SPRITE:
+
+        #ESTABLECE LA IMAGEN CON LA VARIABLE + EL SPEED DE LAS CONDICIONES:
+        self.image = sprite_lista[int(self.indice_sprite)]
 
 ############################################################################################
 
 class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
 
-    def __init__(self):
-        pass
-       
-    def update(self):
-        pass             
+    def __init__(self, x, y, grupo_proyectil, jugador):
+
+        super().__init__()
+
+        #VARIABLES CONSTANTES DE LA MUNICION TESTEAR
+        self.velocidad = 20 #VELOCIDAD NO AFECTADA POR LA GRAVEDAD
+        self.RANGO = 500 #RANGO <= LUEGO SE DESTRUYE
+        
+        #ANIMACION DEL PROYECTIL:
+
+        #CONDICIONES PARA ASEGURAR QUE LA ANIMACION SEA LA CORRECTA + CARGA DE LA MISMA
+
+        if jugador.velocidad.x > 0: #Significa que el movimiento es hacia la derecha -->
+            
+            self.image = pygame.transform.scale(pygame.image.load("images/player/slash.png"),(32,32))
+
+        else: #Significa que el movimiento es hacia la izquierda <--
+
+            #Reutilizo la misma imagen, y la reverso con FLIP: (PRIMER BOOLEAN: "DAR VUELTA HORIZONTALMENTE", SEGUNDO BOOLEAN: "DAR VUELTA VERTICALMENTE")
+            self.image = pygame.transform.scale(pygame.transform.flip(pygame.image.load("images/player/slash.png"), True, False), (32,32))
+            self.velocidad = -1 * self.velocidad #Garantiza que el disparo tenga orientacion izquierda
+
+        #RECORRIDO DE LA RECTA (rect):
+
+        self.rect = self.image.get_rect() #OBTENGO LA DIRECCION DE PROYECTIL
+        self.rect.center = (x,y) #SALDRA DESDE EL CENTRO DE LA POSICION QUE ESTE
+
+        self.posicion_inicial_x = x #POSICION INICIAL DE LA BALA
+
+        grupo_proyectil.add(self)#Lo agrego al grupo de las municiones
+
+    def update(self):        
+        
+        self.rect.x += self.velocidad #Acumulo en el recorrido el movimiento de la bala
+        #self.chequear_colision() TESTEAR           
+
+        #DESTRUCCION de la bala si supera el RANGO
+
+        #ABS: Devuelve el valor absoluto del número dado = DISTANCIA = MODULO |abs|
+        if abs(self.rect.x - self.posicion_inicial_x) > self.RANGO:
+
+            self.kill() #destruye el objeto - en este caso la bala
 
     def chequear_colision(self):
-        pass
+        #SI EL PROYECTIL COLISIONA CON EL PORTAL: (CONTINUAR...) TESTEAR
+        lista_colision = pygame.sprite.groupcollide(grupo_proyectil, grupo_portal, False, False) #Diccionario que guarda las colisiones        
+
+        if lista_colision: #SI HAY COLISION: 
+
+            for proyectiles in lista_colision.values():
+                for proyectil in proyectiles:
+
+                    if jugador.posicion.x > WIDTH / 2:                        
+                        jugador.sonido_portal.play() #Activa el sonido del portal
+                        #Una vez que colisiona, determinar a que portal se movera 
        
 ############################################################################################    
 
@@ -486,7 +849,10 @@ for i in range(len(mapa_mosaico)):
         
         #JUGADOR:
         elif mapa_mosaico[i][j] == 9:
-            pass 
+            #(32 - 25 = POSICION IZQUIERDA) ---- (32 + 35 = POSICION ARRIBA O ABAJO)    
+            jugador = Jugador(j*32 - 25, i*32 + 32, grupo_plataforma, grupo_portal, grupo_proyectil) 
+            grupo_jugador.add(jugador)
+            #GRUPO JUGADOR
 
 #FONDO DE PANTALLA - CARGA LA IMAGEN:
 background_image = pygame.transform.scale(pygame.image.load("images/background.png"),(WIDTH,HEIGHT))
@@ -513,6 +879,22 @@ while running: #Mientras se este corriendo el juego:
 
         if evento.type == pygame.QUIT: #Cuando el evento es igual a X (SALIR)
             running = False #Termina el ciclo del juego
+
+        if evento.type == pygame.KEYDOWN:
+        #El evento KEYDOWN se produce cuando se presiona una tecla:    
+
+            if evento.key == pygame.K_SPACE: #BARRA ESPACIADORA
+                jugador.salto() #SALTAR
+  
+            if evento.key == pygame.K_x: #TECLA X 
+
+                primer_disparo = pygame.time.get_ticks()
+                
+                #CONTROLA LA VELOCIDAD DE LAS RAFAGAS
+                if primer_disparo - jugador.ultimo_disparo > jugador.CADENCIA: 
+                    #TESTEAR: SE HACE CADA VEZ MAS LENTO DISPARAR POR LA CADENCIA AUMENTADA
+                    jugador.disparar() #DISPARAR
+                    jugador.ultimo_disparo = primer_disparo #IMPORTANTE MODIFICAR EL VALOR
 
     #Dibujar (blit) el fondo en la pantalla:    
     display.blit(background_image, backgroud_rect) #Superposicion (Fondo, Fondo recta)
