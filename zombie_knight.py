@@ -8,6 +8,7 @@ pygame.init()
 
 #BALDOSAS DE 32 X 32: CALCULO PARA ASIGNAR LOS ESPACIOS EN EL MAPA MATRIZ:
 #SUPERFICIE DE VISUALIZACION: (32 X 32: 1280/32 = 40 ancho, 736/32 = 23 alto)
+#NOS DA UNA MATRIZ DE [40][23] SE MULTIPLICA POR 32, QUE SON EL TAMAÑO DE LAS TEXTURAS DE LOS MOSAICOS
 
 WIDTH = 1280 # ANCHO
 HEIGHT = 736 # ALTO
@@ -253,13 +254,16 @@ class Juego():
 
                     self.jugador.vida -= 20 #Nos resta N puntos de vida
                     self.jugador.sonido_daño.play() #Sonido de daño 
-
+                    
+                    #TAMBIEN SE PODRIA AGREGAR QUE EL PERSONAJE NO PUEDA RECIBIR DAÑO POR 2 SEGUNDOS, EN VEZ DE CORRERLO, COMO UNA "CAPA DE PROTECCION"
                     #EVITAR QUE EL JUGADOR SIGA RECIBIENDO DAÑO CONTINUO:
                     self.jugador.posicion.x -= 200 * enemigo.direccion #LO DESPLAZA AL JUGADOR A OTRA POSICION  - TESTEAR
                     self.jugador.rect.bottomleft = self.jugador.posicion
         
         #SI EL JUGADOR COLISIONA CON EL POTENCIADOR        
         if pygame.sprite.spritecollide(self.jugador, self.grupo_ruby, True): #True porque queremos que desaparezca cuando colisiona
+
+            #if tipo = numero: entonces --> Haga algo
             
             self.agarrar_ruby_sonido.play() #Reproduce la musica cuando AGARRA el potenciador
             self.score += 100 #La puntuacion que aumenta
@@ -748,7 +752,7 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
             else: #Por contrario estas ABAJO
                 self.posicion.y = HEIGHT - 132 #132 Pixeles
 
-            self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
+        self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
 
 
     def chequear_animaciones(self): #Chequea las animaciones de salto y disparo
@@ -912,7 +916,7 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
         #PERO SE PUEDE USAR PARA AGREGAR VARIAS CLASES DE ENEMIGOS
         #CON PROPIEDADES DIFERENTES - SKINS - HABILIDADES, ETC.
 
-        genero = random.randint(0,1) #COMO SON 2 TIPOS, EL AZAR SON 2 OPCIONES
+        genero = random.randint(0, 1) #COMO SON 2 TIPOS, EL AZAR SON 2 OPCIONES
 
         #0 = HOMBRE
         #1 = MUJER
@@ -972,7 +976,7 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
                 #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
                 self.aturdido_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
 
-        else:
+        else: #SI TOCA 1 = MUJER
 
             #ANIMACION - CAMINANDO DERECHA: ANEXAR A LA LISTA DE ANIMACIONES
             self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (1).png"),(64,64)))
@@ -1036,6 +1040,7 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
         if self.direccion == -1:
             #CARGA LA IMAGEN DE PARTIDA
             self.image = self.movimiento_izquierdo_sprites[self.indice_sprite] 
+
         else:
             self.image = self.movimiento_derecho_sprites[self.indice_sprite]         
 
@@ -1304,6 +1309,7 @@ class Ruby(pygame.sprite.Sprite): #Ruby: Da puntos y aumenta la salud del jugado
         #VARIABLES CONSTANTES:
         self.ACELERACION_VERTICAL = 3 #Gravedad
         self.HORIZONTAL_VELOCIDAD = 5 #Velocidad
+        #TIPO = random.randint(0,N) SE PODRIA AGREGAR DIFERENTES TIPOS DE POTENCIADORES (DIF. IMAGENES) Y EN LA CLASE "JUEGO" DEPENDIENDO EL "TIPO" QUE SEA HAGA DIFERENTES COSAS
 
         #Animacion de los fotogramas
         self.ruby_sprites = []
@@ -1416,7 +1422,6 @@ class Ruby(pygame.sprite.Sprite): #Ruby: Da puntos y aumenta la salud del jugado
                 self.posicion.y = HEIGHT - 132 #132 Pixeles
 
             self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
-
 
     def animacion(self, sprite_list, speed):
         #sprite_list[]: Lista que contiene las animaciones correspondientes
@@ -1589,9 +1594,9 @@ mapa_mosaico = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 4, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], #19
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], #20
 
-    [8, 0, 0, 0, 0, 0, 0, 0 , 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0], #21
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],   #22
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]    #23
+    [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0], #21
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], #22
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]  #23
 
             ]
 
@@ -1605,6 +1610,8 @@ for i in range(len(mapa_mosaico)):
     for j in range(len(mapa_mosaico[i])):
 
     #CADA CONDICION MUESTRA LOS OBJETOS CORRESPONDIENTES:
+
+    #SE LE ASIGNA LOS GRUPOS PARA CLASIFICAR CADA TIPO DE SPRITE U OBJETO
 
         #TIERRA:        
         if mapa_mosaico[i][j] == 1:
@@ -1709,7 +1716,7 @@ while running: #Mientras se este corriendo el juego:
                 #Pausa el juego                
                 juego.pausar_juego("Juego en PAUSA!","Presiona 'P' para continuar")   
 
-    #Dibujar (blit) el fondo en la pantalla:    
+    #Dibujar (blit) el fondo en la pantalla: #SI SE DESACTIVA SE VEN LOS TRAZOS DE LAS ANIMACIONES    
     display.blit(background_image, backgroud_rect) #Superposicion (Fondo, Fondo recta)
 
     #DIBUJAR AZULEJOS - TILES - GRAFICOS - OBJETOS - ESTRUCTURAS - PLATAFORMA - ETC    
