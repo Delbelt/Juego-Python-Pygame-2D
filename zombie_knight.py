@@ -595,7 +595,7 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
 
         #OBTENGO LA RECTA (get.rect): Es el recorrido del objeto - En este caso el jugador
         self.rect = self.image.get_rect() #POSICION DE LA RECTA
-        self.rect.bottomleft = (x,y) #A PARTIR DE: ABAJO A LA IZQUIERDA = (x,y)
+        self.rect.bottomleft = (x, y) #A PARTIR DE: ABAJO A LA IZQUIERDA = (x,y)
 
         #GRUPOS SPRITES:
         self.grupo_plataforma = grupo_plataforma
@@ -707,7 +707,7 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
                 
                 #IGUALA LA POSICION AL OBJETO QUE CHOCA + NUMERO: DE REBOTE AL CHOCAR.
                 self.posicion.y = colision_plataforma[0].rect.top + 7 #+ NUMERO = VIBRACION DE COLISION
-                self.velocidad.y = 0 #ASEGURA QUE SE DEJE DE MOVER 
+                self.velocidad.y = 0 #ASEGURA QUE SE DEJE DE MOVER               
 
         #Chequea las colisiones cuando el jugador esta saltando:
         if self.velocidad.y < 0:
@@ -840,31 +840,62 @@ class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
         
         #ANIMACION DEL PROYECTIL:
 
+        colorProyectil = random.randint(0, 1) #COMO SON 2 TIPOS, EL AZAR SON 2 OPCIONES
+
+        #0 = AZUL
+        #1 = ROJO
+
+        if colorProyectil == 0:        
+
         #CONDICIONES PARA ASEGURAR QUE LA ANIMACION SEA LA CORRECTA + CARGA DE LA MISMA
 
-        if jugador.velocidad.x > 0: #Significa que el movimiento es hacia la derecha -->
-            
-            self.image = pygame.transform.scale(pygame.image.load("images/player/slash.png"),(32,32))
+            if jugador.velocidad.x > 0: #Significa que el movimiento es hacia la derecha -->
+                
+                self.image = pygame.transform.scale(pygame.image.load("images/player/slash.png"),(32,32))
 
-        else: #Significa que el movimiento es hacia la izquierda <--
+            else: #Significa que el movimiento es hacia la izquierda <--
 
-            #Reutilizo la misma imagen, y la reverso con FLIP: (PRIMER BOOLEAN: "DAR VUELTA HORIZONTALMENTE", SEGUNDO BOOLEAN: "DAR VUELTA VERTICALMENTE")
-            self.image = pygame.transform.scale(pygame.transform.flip(pygame.image.load("images/player/slash.png"), True, False), (32,32))
-            self.velocidad = -1 * self.velocidad #Garantiza que el disparo tenga orientacion izquierda
+                #Reutilizo la misma imagen, y la reverso con FLIP: (PRIMER BOOLEAN: "DAR VUELTA HORIZONTALMENTE", SEGUNDO BOOLEAN: "DAR VUELTA VERTICALMENTE")
+                self.image = pygame.transform.scale(pygame.transform.flip(pygame.image.load("images/player/slash.png"), True, False), (32,32))
+                self.velocidad = -1 * self.velocidad #Garantiza que el disparo tenga orientacion izquierda
 
-        #RECORRIDO DE LA RECTA (rect):
+                #RECORRIDO DE LA RECTA (rect):
 
-        self.rect = self.image.get_rect() #OBTENGO LA DIRECCION DE PROYECTIL
-        self.rect.center = (x,y) #SALDRA DESDE EL CENTRO DE LA POSICION QUE ESTE
+            self.rect = self.image.get_rect() #OBTENGO LA DIRECCION DE PROYECTIL
+            self.rect.center = (x,y) #SALDRA DESDE EL CENTRO DE LA POSICION QUE ESTE
 
-        self.posicion_inicial_x = x #POSICION INICIAL DE LA BALA
+            self.posicion_inicial_x = x #POSICION INICIAL DE LA BALA
 
-        grupo_proyectil.add(self)#Lo agrego al grupo de las municiones
+            grupo_proyectil.add(self)#Lo agrego al grupo de las municiones
+
+        else:
+
+            if jugador.velocidad.x > 0: #Significa que el movimiento es hacia la derecha -->
+                
+                self.image = pygame.transform.scale(pygame.image.load("images/player/slash1.png"),(32,32))
+
+            else: #Significa que el movimiento es hacia la izquierda <--
+
+                #Reutilizo la misma imagen, y la reverso con FLIP: (PRIMER BOOLEAN: "DAR VUELTA HORIZONTALMENTE", SEGUNDO BOOLEAN: "DAR VUELTA VERTICALMENTE")
+                self.image = pygame.transform.scale(pygame.transform.flip(pygame.image.load("images/player/slash1.png"), True, False), (32,32))
+                self.velocidad = -1 * self.velocidad #Garantiza que el disparo tenga orientacion izquierda
+
+            #RECORRIDO DE LA RECTA (rect):
+
+            self.rect = self.image.get_rect() #OBTENGO LA DIRECCION DE PROYECTIL
+            self.rect.center = (x,y) #SALDRA DESDE EL CENTRO DE LA POSICION QUE ESTE
+
+            self.posicion_inicial_x = x #POSICION INICIAL DE LA BALA
+
+            grupo_proyectil.add(self)#Lo agrego al grupo de las municiones
 
     def update(self):        
         
         self.rect.x += self.velocidad #Acumulo en el recorrido el movimiento de la bala
-        #self.chequear_colision() TESTEAR           
+
+        #self.rect.x +=0 #Se puede usar para otro tipo de disparo (como si fuera una mina de aproximacion) disparo especial
+
+        self.chequear_colision() #TESTEAR           
 
         #DESTRUCCION de la bala si supera el RANGO
 
@@ -873,18 +904,30 @@ class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
 
             self.kill() #destruye el objeto - en este caso la bala
 
-    def chequear_colision(self):
-        #SI EL PROYECTIL COLISIONA CON EL PORTAL: (CONTINUAR...) TESTEAR
+    def chequear_colision(self): #SI EL PROYECTIL COLISIONA CON EL PORTAL: (CONTINUAR...) TESTEAR
+        
         lista_colision = pygame.sprite.groupcollide(grupo_proyectil, grupo_portal, False, False) #Diccionario que guarda las colisiones        
 
         if lista_colision: #SI HAY COLISION: 
 
             for proyectiles in lista_colision.values():
-                for proyectil in proyectiles:
-
-                    if jugador.posicion.x > WIDTH / 2:                        
+                for proyectil in proyectiles:            
+                 
+                    if jugador.posicion.x < WIDTH / 2 and jugador.posicion.y > HEIGHT / 2: #JUGADOR: IZQUIERDA ABAJO                     
                         jugador.sonido_portal.play() #Activa el sonido del portal
-                        #Una vez que colisiona, determinar a que portal se movera 
+                        self.velocidad = -1 * self.velocidad
+
+                    if jugador.posicion.x > WIDTH / 2 and jugador.posicion.y > HEIGHT / 2: #JUGADOR: DERECHA ABAJO                       
+                        jugador.sonido_portal.play() #Activa el sonido del portal
+                        self.velocidad = -1 * self.velocidad 
+                    
+                    if jugador.posicion.x < WIDTH / 2 and jugador.posicion.y < HEIGHT / 2: #JUGADOR: IZQUIERDA ARRIBA                   
+                        jugador.sonido_portal.play() #Activa el sonido del portal
+                        self.velocidad = -1 * self.velocidad  
+
+                    if jugador.posicion.x > WIDTH / 2 and jugador.posicion.y < HEIGHT / 2: #JUGADOR: DERECHA ARRIBA                     
+                        jugador.sonido_portal.play() #Activa el sonido del portal
+                        self.velocidad = -1 * self.velocidad       
 
 ############################################################################################    
 
@@ -976,7 +1019,7 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
                 #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
                 self.aturdido_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
 
-        else: #SI TOCA 1 = MUJER
+        else: #SI TOCA 1 = MUJER *************************************************************************************************************
 
             #ANIMACION - CAMINANDO DERECHA: ANEXAR A LA LISTA DE ANIMACIONES
             self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (1).png"),(64,64)))
