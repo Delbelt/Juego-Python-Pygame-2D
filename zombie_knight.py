@@ -1,4 +1,7 @@
 import pygame, random
+from fastapi import FastAPI
+
+app =   FastAPI()
 
 #VECTOR 2D PARA LOS MOVIMIENTOS DE PLATAFORMA
 vector = pygame.math.Vector2 #math.Vector2 = VECTOR de 2 DIMENSIONES
@@ -9,6 +12,12 @@ pygame.init()
 #BALDOSAS DE 32 X 32: CALCULO PARA ASIGNAR LOS ESPACIOS EN EL MAPA MATRIZ:
 #SUPERFICIE DE VISUALIZACION: (32 X 32: 1280/32 = 40 ancho, 736/32 = 23 alto)
 #NOS DA UNA MATRIZ DE [40][23] SE MULTIPLICA POR 32, QUE SON EL TAMAÑO DE LAS TEXTURAS DE LOS MOSAICOS
+
+# 1920 / 32 = 60
+# 1080 / 32 = 34
+
+#WIDTH = 1920 # ANCHO
+#HEIGHT = 1080 # ALTO
 
 WIDTH = 1280 # ANCHO
 HEIGHT = 736 # ALTO
@@ -43,8 +52,8 @@ class Juego():
     def __init__(self, jugador, grupo_enemigo, grupo_plataforma, grupo_portal, grupo_proyectil, grupo_ruby): #INIT DEL JUEGO
         
         #VARIABLES CONSTANTES
-        self.TIEMPO_RONDA = 15 #Duracion de cada ronda
-        self.TIEMPO_SPAM_ENEMIGO = 5 #TIEMPO PARA SPAMEAR UN ENEMIGO
+        self.TIEMPO_RONDA = 25 #Duracion de cada ronda
+        self.TIEMPO_SPAM_ENEMIGO = random.randint(2, 5) #TIEMPO PARA SPAMEAR UN ENEMIGO
 
         #VALORES DEL JUEGO:
         self.score = 0 #PUNTUACION INICIAL
@@ -53,6 +62,12 @@ class Juego():
         self.tiempo_ronda = self.TIEMPO_RONDA #Duracion de la ronda
         self.tiempo_spam_enemigo = self.TIEMPO_SPAM_ENEMIGO #TIEMPO DE SPAM
         self.modo_juego = False #TRUE = MODO ATURDIR - FALSE = MODO DAÑO
+        self.spam_ruby = 15
+
+        #TESTEAR - PARA QUE NO PUEDAN PEGARLE INFINITAMENTE AL JUGADOR
+        self.dañar = True
+        self.contador = 0
+        self.tiempo_daño = 2500 #2 SEGUNDOS Y MEDIO
 
         #MODO ATURDIR = CUANDO UN PROYECTIL COLISIONA CON EL ENEMIGO, LO ATURDE Y EL JUGADOR TIENE QUE "PISARLO" PARA ELIMINARLO
         #MODO DAÑO = EL ENEMIGO RECIBE DAÑO POR PROYECTIL, TIENE UN LEVE RETROCESO POR DISPARO - EL ENEMIGO NO SE ATURDE, NI SE PISA.
@@ -65,7 +80,7 @@ class Juego():
         #SONIDOS:
         self.perdida_ruby_sonido = pygame.mixer.Sound("sounds/lost_ruby.wav") #Choca con un enemigo
         self.agarrar_ruby_sonido = pygame.mixer.Sound("sounds/ruby_pickup.wav") #Choca con nosotros
-        pygame.mixer.music.load("sounds/level_music.wav") #MUSICA DE FONDO     
+        pygame.mixer.music.load("sounds/horror_music.wav") #MUSICA DE FONDO
 
         #GRUPOS Y SPRITES:
         self.jugador = jugador
@@ -149,10 +164,14 @@ class Juego():
             if self.tiempo_ronda % self.tiempo_spam_enemigo == 0: #CREA SI SON DIVISIBLES
                 
                 #TESTEAR - VELOCIDAD DE LOS ENEMIGOS
-                                                                            #VELOCIDAD MINIMA  - VELOCIDAD MAXIMA
-                enemigo = Enemigo(self.grupo_plataforma, self.grupo_portal, self.ronda_numero, 5 + self.ronda_numero)
+                                                                                                #VELOCIDAD MINIMA  - VELOCIDAD MAXIMA
+                enemigo = Enemigo(self.grupo_plataforma, self.grupo_portal, self.ronda_numero + random.randint(1, 3), random.randint(4, 5) + self.ronda_numero)
                 self.grupo_enemigo.add(enemigo)
 
+            if self.tiempo_ronda % (self.tiempo_spam_enemigo + 3) * 2 == 0:
+                enemigo = Boss(grupo_plataforma, grupo_portal, random.randint(5, 7), random.randint(8, 10))  
+                grupo_enemigo.add(enemigo)                 
+     
 
     def chequear_colisiones(self): #CHEQUEA LAS COLISIONES DENTRO DEL JUEGO
         
@@ -180,7 +199,8 @@ class Juego():
                                         
                     #MODO JUEGO: #TRUE = MODO ATURDIR - FALSE = MODO DAÑO 
                                           
-                    enemigo.sonido_daño.play()
+                    enemigo.sonido_daño.play()                    
+                    enemigo.sonido_daño.set_volume(0.5)
                     enemigo.esta_abatido = self.modo_juego #ENEMIGO TUMBADO #SIN ESTO EL ZOMBIE SIGUE EN PIE - AL ESTAR ASOCIADO AL MODO DE JUEGO SE CAMBIA "AUTOMATICO"
                     enemigo.animacion_abatido = self.modo_juego #ANIMACION DE TUMBADO #SIN ESTO NO HAY ANIMACION - AL ESTAR ASOCIADO AL MODO DE JUEGO SE CAMBIA "AUTOMATICO"                                                                                 
                                                             
@@ -193,12 +213,12 @@ class Juego():
                             enemigo.posicion.x -= 20 #LO RETROCEDE PARA LA IZQUIERDA + CUANTO RETROCESO
                             enemigo.rect.bottomleft = enemigo.posicion
 
-                            enemigo.vida -= 50 #CADA DISPARO LE SACA VIDA AL ENEMIGO - 3) SACAR MENOS DAÑO CADA RONDA  
+                            enemigo.vida -= 50 - random.randint(1, 15) #CADA DISPARO LE SACA VIDA AL ENEMIGO - 3) SACAR MENOS DAÑO CADA RONDA  
 
                             if enemigo.vida <= 0: #SI SE QUEDA SIN VIDA:
                                     enemigo.sonido_eliminado.play()                                           
                                     enemigo.kill() #ELIMINA AL ZOMBIE
-                                    self.score += 25 #SUMA PUNTAJE
+                                    self.score += 25 + random.randint(1, 10) #SUMA PUNTAJE
 
                                     #Crea un potenciador cuando matamos un enemigo
                                     #5) Modificar la posibilidad de salida de los potenciadores
@@ -216,18 +236,18 @@ class Juego():
                                 enemigo.posicion.x += 20 #LO RETROCEDE PARA LA IZQUIERDA
                                 enemigo.rect.bottomleft =  enemigo.posicion
 
-                                enemigo.vida -= 50 #CADA DISPARO LE SACA VIDA AL ENEMIGO - 3) SACAR MENOS DAÑO CADA RONDA  
+                                enemigo.vida -= 50 - random.randint(1, 15) #CADA DISPARO LE SACA VIDA AL ENEMIGO - 3) SACAR MENOS DAÑO CADA RONDA  
 
                                 if enemigo.vida <= 0: #SI SE QUEDA SIN VIDA:
 
-                                    enemigo.sonido_eliminado.play()                                           
+                                    enemigo.sonido_eliminado.play()                                                                                
                                     enemigo.kill() #ELIMINA AL ZOMBIE
-                                    self.score += 25 #SUMA PUNTAJE
-
+                                    self.score += 25 + random.randint(1, self.ronda_numero+1) #SUMA PUNTAJE
                                     #Crea un potenciador cuando matamos un enemigo
                                     #5) Modificar la posibilidad de salida de los potenciadores
-                                    ruby = Ruby(self.grupo_plataforma, self.grupo_portal)
-                                    self.grupo_ruby.add(ruby)
+                                    if self.spam_ruby >= random.randint(1, 100):
+                                        ruby = Ruby(self.grupo_plataforma, self.grupo_portal)
+                                        self.grupo_ruby.add(ruby)
 
                             if enemigo.direccion == -1 and self.modo_juego: #SI EL ZOMBIE VA PARA LA IZQUIERDA - PARA EVITAR QUE ROTE EN CADA GOLPE - MODO ATURDIR
 
@@ -250,15 +270,34 @@ class Juego():
                     ruby = Ruby(self.grupo_plataforma, self.grupo_portal)
                     self.grupo_ruby.add(ruby)
 
-                else: #SI EL ENEMIGO NOS TOCA:
+                else: #SI EL ENEMIGO NOS TOCA:                    
+                    
+                    if self.dañar == True:
+                        
+                        #jugador.animacion_disparo = True #PARA TESTEAR QUE FUNCIONA EL CAMBIO DE ANIMACION
+                        # SE TENDRIA QUE ACTIVAR UNA ANIMACION ACA DE QUE TIENE INMUNIDAD                         
 
-                    self.jugador.vida -= 20 #Nos resta N puntos de vida
-                    self.jugador.sonido_daño.play() #Sonido de daño 
+                        if self.dañar== True: #A VECES SE BUGEA Y RECIBE VARIOS GOLPES EN EL MISMO CICLO POR ESO ESTO
+
+                            self.dañar = False #PARA QUE NO LE PEGUEN
+                            self.jugador.vida -= 10 + random.randint(1, self.ronda_numero+1) #Nos resta N puntos de vida
+                            self.jugador.sonido_daño.play() #Sonido de daño
+                            self.jugador.animacion_inmune = True
+                            self.contador = 0 #HAY QUE VOLVER EL CONTADOR A 0
+
+        if self.dañar == False: #TIEMPO PARA QUE LE PUEDAN VOLVER A PEGAR - SI YA NOS PEGARON EMPIEZA EL CONTADOR
+
+            self.contador += 1  #ACA VA EL CONTADOR       
+
+            if self.contador > 40: #TESTEAR DIFERENTES VALORES ENTRE 20 A 50                            
+                self.contador = 0 #HAY QUE VOLVER EL CONTADOR A 0 PARA VOLVER A RE-UTILIZARLO
+                self.dañar = True #CUANDO PASA EL TIEMPO VUELVE A LA VARIABLE DE DAÑO POSIBLE         
                     
                     #TAMBIEN SE PODRIA AGREGAR QUE EL PERSONAJE NO PUEDA RECIBIR DAÑO POR 2 SEGUNDOS, EN VEZ DE CORRERLO, COMO UNA "CAPA DE PROTECCION"
                     #EVITAR QUE EL JUGADOR SIGA RECIBIENDO DAÑO CONTINUO:
-                    self.jugador.posicion.x -= 200 * enemigo.direccion #LO DESPLAZA AL JUGADOR A OTRA POSICION  - TESTEAR
-                    self.jugador.rect.bottomleft = self.jugador.posicion
+
+                    #self.jugador.posicion.x -= 200 * enemigo.direccion #LO DESPLAZA AL JUGADOR A OTRA POSICION  - TESTEAR
+                    #self.jugador.rect.bottomleft = self.jugador.posicion
         
         #SI EL JUGADOR COLISIONA CON EL POTENCIADOR        
         if pygame.sprite.spritecollide(self.jugador, self.grupo_ruby, True): #True porque queremos que desaparezca cuando colisiona
@@ -266,8 +305,9 @@ class Juego():
             #if tipo = numero: entonces --> Haga algo
             
             self.agarrar_ruby_sonido.play() #Reproduce la musica cuando AGARRA el potenciador
-            self.score += 100 #La puntuacion que aumenta
-            self.jugador.vida += 10 #La vida que otorga al jugador
+            self.agarrar_ruby_sonido.set_volume(0.5)
+            self.score += 100 + (self.ronda_numero * 2) #La puntuacion que aumenta
+            self.jugador.vida += 10 + self.ronda_numero #La vida que otorga al jugador
 
             #Si la vida del potenciador supera la inicial: #SE PUEDE QUITAR O MODIFICAR EN EL FUTURO
             if self.jugador.vida > self.jugador.VIDA_INICIAL:
@@ -281,6 +321,7 @@ class Juego():
                 if pygame.sprite.spritecollide(enemigo, self.grupo_ruby, True): #True porque queremos que desaparezca cuando colisiona
             
                     self.perdida_ruby_sonido.play() #Reproduce la musica cuando ROMPEN el potenciador
+                    self.perdida_ruby_sonido.set_volume(0.18)
                     #AGREGA UN ENEMIGO AL JUEGO, SI LO AGARRAN ELLOS:                    
                     enemigo = Enemigo(self.grupo_plataforma, self.grupo_portal, self.ronda_numero, 5 + self.ronda_numero)
                     self.grupo_enemigo.add(enemigo)                 
@@ -322,8 +363,9 @@ class Juego():
         self.grupo_ruby.empty() #ELIMINA LOS POTENCIADORES
         self.grupo_proyectil.empty() #ELIMINA LOS PROYECTILES
         self.jugador.reiniciar() #REINICIA AL JUGADOR
+        self.dañar = True 
 
-        self.pausar_juego("Has sobrevivido la noche!", "Presiona 'Enter' para continuar")
+        self.pausar_juego("Has sobrevivido a la noche" + " " + str(self.ronda_numero - 1), "Presiona 'Enter' para continuar")
     
 
     def pausar_juego(self, texto_principal, texto_secundario): #PAUSA EL JUEGO - GIU
@@ -332,9 +374,9 @@ class Juego():
         #PARA QUE SE DIFERENCIA LA INTERFAZ DE PAUSA Y EL INICIO DEL JUEGO
         #SE PUEDE AGREGAR COMO PLANTILLA PARA OTRAS GUIS
         
-        global running
+        global running #Traigo la variable running del ciclo principal
 
-        pygame.mixer.music.pause()
+        # pygame.mixer.music.pause() #Pausa la musica
 
         #ESTABLECE COLORES EN LA PAUSA - EFECTOS:
 
@@ -366,7 +408,6 @@ class Juego():
         #CICLO DE VIDA DE LA PAUSA:
 
         en_pausa = True
-        nuevo_juego = True
 
         while en_pausa: #Pausa = True
 
@@ -386,8 +427,7 @@ class Juego():
                     #EL USUARIO QUIERE INICIAR O REINICIAR EL JUEGO
                     if evento.key == pygame.K_RETURN: #ENTER
                         if self.contador_fps == 0:
-                            en_pausa = False #Termina la pausa
-                            nuevo_juego = False
+                            en_pausa = False #Termina la pausa                       
                             pygame.mixer.music.unpause() #Vuelve la musica
 
                     #EL USUARIO QUIERE CONTINUAR EL JUEGO, LUEGO DE PAUSAR
@@ -397,6 +437,189 @@ class Juego():
 
                             en_pausa = False #Termina la pausa
                             pygame.mixer.music.unpause() #Vuelve la musica                                           
+
+    
+    def presentacion(self):
+        
+        #SE PODRIA AGREGAR OTRO TIPO DE PAUSA QUE SOLO SEA PARA LA INTRO DEL JUEGO
+        #PARA QUE SE DIFERENCIA LA INTERFAZ DE PAUSA Y EL INICIO DEL JUEGO
+        #SE PUEDE AGREGAR COMO PLANTILLA PARA OTRAS GUIS
+        
+        global running #Traigo la variable running del ciclo principal
+
+        # pygame.mixer.music.pause() #Pausa la musica
+
+        #ESTABLECE COLORES EN LA PAUSA - EFECTOS:
+
+        WHITE = (255, 255, 255)
+        BLACK = (0, 0, 0)
+        GREEN = (25, 180, 25)
+        ROJO = (166, 7, 8)
+
+        #TEXTO PRINCIPAL:
+        #juego.pausar_juego("Bienvenido", "Presiona 'Enter' para ingresar") #ESPERA EN LA INTERFACE DE PAUSA
+
+        texto_principal = self.titulo_fuente.render("Bienvenido", True, ROJO) #Renderiza el texto
+        texto_principal_rect = texto_principal.get_rect() #Guardo la posicion de la recta del texto, en el trazo.
+        texto_principal_rect.center = (WIDTH // 2, HEIGHT // 3 + 50 ) #Posicion de la recta
+
+        #TEXTO SECUNDARIO:
+
+        texto_secundario = self.titulo_fuente.render("Presiona 'Enter' para ingresar", True, ROJO) #Renderiza el texto
+        texto_secundario_rect = texto_secundario.get_rect() #Guardo la posicion de la recta del texto, en el trazo.
+        texto_secundario_rect.center = (WIDTH // 2, HEIGHT // 3 + 110) #Posicion de la recta        
+
+        #TUTORIAL:
+
+        tutorial_titulo = pygame.font.Font("fonts/Poultrygeist.ttf", 48)
+        tutorial_linea = pygame.font.Font("fonts/Poultrygeist.ttf", 30)  
+
+        texto_tutorial = tutorial_titulo.render("MOVIMIENTOS", True, GREEN)
+        texto_tutorial_rect = texto_tutorial.get_rect()
+        texto_tutorial_rect.center = (WIDTH // 2, 50)
+
+        texto_linea1 = tutorial_linea.render("<- = IZQUIERDA", True, GREEN)
+        texto_linea1_rect = texto_linea1.get_rect()
+        texto_linea1_rect.center = (410, 100)
+
+        texto_linea2 = tutorial_linea.render("-> = DERECHA", True, GREEN)
+        texto_linea2_rect = texto_linea2.get_rect()
+        texto_linea2_rect.center = (400, 140)
+
+        texto_linea3 = tutorial_linea.render("A = IZQUIERDA", True, GREEN)
+        texto_linea3_rect = texto_linea3.get_rect()
+        texto_linea3_rect.center = (410, 180)
+
+        texto_linea4 = tutorial_linea.render("D = DERECHA", True, GREEN)
+        texto_linea4_rect = texto_linea4.get_rect()
+        texto_linea4_rect.center = (400, 220)
+
+        texto_linea5 = tutorial_linea.render("ATAQUE PRINCIPAL = X / L", True, GREEN)
+        texto_linea5_rect = texto_linea5.get_rect()
+        texto_linea5_rect.center = (800, 100)
+
+        #Agregado!!!
+        texto_linea6 = tutorial_linea.render("MUTEAR MÚSICA = M", True, GREEN)
+        texto_linea6_rect = texto_linea5.get_rect()
+        texto_linea6_rect.center = (800, 140)
+
+        texto_linea7 = tutorial_linea.render("SALIR = ESC", True, GREEN)
+        texto_linea7_rect = texto_linea5.get_rect()
+        texto_linea7_rect.center = (800, 180)
+
+        #INTEGRANTES:
+
+        texto_linea14 = tutorial_linea.render("INTEGRANTES:", True, ROJO)
+        texto_linea14_rect = texto_linea14.get_rect()
+        texto_linea14_rect.center = (WIDTH // 2, HEIGHT // 3 + 200)
+
+        texto_linea8 = tutorial_linea.render("Gonzalo Beelmann", True, GREEN)
+        texto_linea8_rect = texto_linea8.get_rect()
+        texto_linea8_rect.center = (WIDTH // 2, HEIGHT // 3 + 240)
+
+        texto_linea9 = tutorial_linea.render("Martin Di Alessio", True, GREEN)
+        texto_linea9_rect = texto_linea9.get_rect()
+        texto_linea9_rect.center = (WIDTH // 2, HEIGHT // 3 + 280)
+
+        texto_linea10 = tutorial_linea.render("Ivan Castillo", True, GREEN)
+        texto_linea10_rect = texto_linea10.get_rect()
+        texto_linea10_rect.center = (WIDTH // 2, HEIGHT // 3 + 320)
+
+        texto_linea11 = tutorial_linea.render("Nahuel Flores", True, GREEN)
+        texto_linea11_rect = texto_linea11.get_rect()
+        texto_linea11_rect.center = (WIDTH // 2, HEIGHT // 3 + 360)
+
+        texto_linea12 = tutorial_linea.render("Micaela Peralta", True, GREEN)
+        texto_linea12_rect = texto_linea12.get_rect()
+        texto_linea12_rect.center = (WIDTH // 2, HEIGHT // 3 + 400)
+
+        texto_linea13 = tutorial_linea.render("Gonzalo Terzi", True, GREEN)
+        texto_linea13_rect = texto_linea13.get_rect()
+        texto_linea13_rect.center = (WIDTH // 2, HEIGHT // 3 + 440)
+
+        #DIBUJOS DE PAUSA - HAY QUE AGREGARLOS PARA QUE APAREZCAN:
+        display.fill(BLACK) #SOBRE-ESCRIBE LO QUE ESTABA EN EL DISPLAY
+        display.blit(texto_principal, texto_principal_rect) #DIBUJO: PUNTAJE
+        display.blit(texto_secundario, texto_secundario_rect) #DIBUJO: VIDA  
+        display.blit(texto_tutorial, texto_tutorial_rect)
+
+        #TEXTOS DE MOVIMIENTO
+        display.blit(texto_linea1, texto_linea1_rect)
+        display.blit(texto_linea2, texto_linea2_rect)
+        display.blit(texto_linea3, texto_linea3_rect)
+        display.blit(texto_linea4, texto_linea4_rect)
+        display.blit(texto_linea5, texto_linea5_rect)
+        display.blit(texto_linea6, texto_linea6_rect)
+        display.blit(texto_linea7, texto_linea7_rect)
+
+        #INTEGRANTES:
+        display.blit(texto_linea8, texto_linea8_rect)
+        display.blit(texto_linea9, texto_linea9_rect)
+        display.blit(texto_linea10, texto_linea10_rect)
+        display.blit(texto_linea11, texto_linea11_rect)
+        display.blit(texto_linea12, texto_linea12_rect)
+        display.blit(texto_linea13, texto_linea13_rect)
+        display.blit(texto_linea14, texto_linea14_rect)
+
+        #TEXTOS DE ATAQUE (VAN A SER VARIOS :$$)
+        display.blit(texto_linea5, texto_linea5_rect)
+        
+        pygame.display.update() #ACTUALIZA LA PANTALLA             
+
+        #PAUSA EL JUEGO HASTA PULSAR ENTER - SALIR
+
+        #CICLO DE VIDA DE LA PAUSA:
+
+        en_pausa = True
+        musica = True
+
+        while en_pausa: #Pausa = True
+
+            for evento in pygame.event.get():
+
+                #El jugador quiere terminar el juego:
+                if evento.type == pygame.QUIT: #SALIR X
+                    
+                    en_pausa = False
+                    running = False #Termina el ciclo del juego                                        
+                    pygame.mixer.music.stop()
+                    pygame.quit() #Cierra la pestaña 
+
+                if evento.type == pygame.KEYDOWN:
+                    #El evento KEYDOWN se produce cuando se presiona una tecla:
+
+                    #EL USUARIO QUIERE INICIAR O REINICIAR EL JUEGO
+                    if evento.key == pygame.K_RETURN: #ENTER
+                        if self.contador_fps == 0:
+                            en_pausa = False #Termina la pausa                       
+                            pygame.mixer.music.unpause() #Vuelve la musica
+
+                    #EL USUARIO QUIERE CONTINUAR EL JUEGO, LUEGO DE PAUSAR
+                    if evento.key == pygame.K_p: #TECLA P
+
+                        if self.contador_fps != 0: #Antes de iniciar el juego el contador espera en 0, por eso la P no puede clickearse, pero a partir que inicia, ya puede aplicarse
+
+                            en_pausa = False #Termina la pausa
+                            pygame.mixer.music.unpause() #Vuelve la musica    
+
+                    if evento.key == pygame.K_ESCAPE: #PRUEBA PARA TERMINAR EL JUEGO CON ESC #AGREGARLO EN LAS PAUSAS (PARA QUE SE PUEDA FINALIZAR AHI TAMBIEN)
+                        running = False
+                        pygame.quit() #Cierra la pestaña 
+
+                    if evento.key == pygame.K_m: #PARA SACAR LA MUSICA
+                #QUITAR ADEMAS:
+                #LOS SONIDOS DE LOS DISPAROS
+                #COLISIONES
+                #PORTALES
+                #MUERTES, ETC
+
+                        if(musica):
+                            pygame.mixer.music.pause() #Pausa la musica
+                            musica = False
+                
+                        else:
+                            pygame.mixer.music.unpause() #Vuelve la musica
+                            musica = True
 
 
     def reiniciar_juego(self): #REINICIA EL JUEGO
@@ -427,40 +650,44 @@ class Mosaico(pygame.sprite.Sprite): #Clase que representa el MAPA MOSAICO de 32
     def __init__(self, x, y, imagen_numero, grupo_principal, grupo_secundario=""): #DA INICIO A LA MATRIZ DEL MAPA DE MOSAICO - EN CASO DE NO TENER SUB-GRUPO LO PASA COMO NULL O VACIO
         super().__init__()
 
+        #VARIABLES PARA LA RESOLUCION
+        tam_x = 40
+        tam_y = 40
+
         #CARGAR LA IMAGEN CORRECTA Y AGREGARLA AL SUB-GRUPO CORRESPONDIENTE:
 
         #TIERRA:
         if imagen_numero == 1:
 
             #CARGA LA IMAGEN CORRESPONDIENTE + RE-ESCALA A 32 X 32 px:            
-            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (1).png"), (32,32))
+            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (1).png"), (tam_x,tam_y))
        
         #PLATAFORMA:
         elif imagen_numero == 2:
 
             #CARGA LA IMAGEN CORRESPONDIENTE + RE-ESCALA A 32 X 32 px:            
-            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (2).png"), (32,32))
+            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (2).png"), (tam_x,tam_y))
             #AGREGO AL  SUB-GRUPO CORRESPONDIENTE:
             grupo_secundario.add(self)
 
         elif imagen_numero == 3:
 
             #CARGA LA IMAGEN CORRESPONDIENTE + RE-ESCALA A 32 X 32 px:            
-            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (3).png"), (32,32))
+            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (3).png"), (tam_x,tam_y))
             #AGREGO AL  SUB-GRUPO CORRESPONDIENTE:
             grupo_secundario.add(self)
 
         elif imagen_numero == 4:
 
             #CARGA LA IMAGEN CORRESPONDIENTE + RE-ESCALA A 32 X 32 px:            
-            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (4).png"), (32,32))
+            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (4).png"), (tam_x,tam_y))
             #AGREGO AL  SUB-GRUPO CORRESPONDIENTE:
             grupo_secundario.add(self)
 
         elif imagen_numero == 5:
 
             #CARGA LA IMAGEN CORRESPONDIENTE + RE-ESCALA A 32 X 32 px:            
-            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (5).png"), (32,32)) 
+            self.image = pygame.transform.scale(pygame.image.load("images/tiles/tile (5).png"), (tam_x,tam_y)) 
             #AGREGO AL  SUB-GRUPO CORRESPONDIENTE:
             grupo_secundario.add(self)
 
@@ -488,12 +715,16 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
         super().__init__()
 
         #CONSTANTES DEL JUGADOR:
-        self.VELOCIDAD_HORIZONTAL = 2 #VELOCIDAD DEL JUGADOR
-        self.FRICCION_HORIZONTAL = 0.15 #FRICCION EN EL DESPLAZAMIENTO (RESBALON)
-        self.ACELERACION_VERTICAL = 0.8 #GRAVEDAD
-        self.FUERZA_SALTO = 18 #QUE TAN ALTO SE PUEDE SALTAR
+        self.VELOCIDAD_HORIZONTAL = 8.1 #VELOCIDAD DEL JUGADOR
+        self.FRICCION_HORIZONTAL = 0.70 #FRICCION EN EL DESPLAZAMIENTO (RESBALON)
+        self.ACELERACION_VERTICAL = 2.7 #GRAVEDAD
+        self.FUERZA_SALTO = 33 #QUE TAN ALTO SE PUEDE SALTAR
         self.VIDA_INICIAL = 100 #VIDA DEL PERSONAJE
         self.CADENCIA = 100 #VELOCIDAD DE DISPARO - MILISEGUNDOS
+
+        #VARIABLES PARA LA RESOLUCION
+        tam_x = 64
+        tam_y = 64
 
         #ANIMACION DE LOS FOTOGRAMAS - LISTAS VACIAS:
         self.movimiento_derecho_sprites = [] #MOVIMIENTO DERECHO
@@ -508,20 +739,23 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
         self.ataque_derecho_sprites = [] #ATAQUE DERECHO
         self.ataque_izquierdo_sprites = [] #ATAQUE IZQUIERDO
 
+        self.inmune_derecho_sprites = [] #INMUNIDAD DERECHA
+        self.inmune_izquierdo_sprites = [] #INMUNIDAD IZQUIERDA
+
         #### ANIMACIONES ####
 
         #MOVIMIENTOS: ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
 
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (1).png"), (64,64)))
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (2).png"), (64,64)))
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (3).png"), (64,64)))
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (4).png"), (64,64)))
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (5).png"), (64,64)))
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (6).png"), (64,64)))
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (7).png"), (64,64)))
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (8).png"), (64,64)))
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (9).png"), (64,64)))
-        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (10).png"), (64,64)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (1).png"), (tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (2).png"), (tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (3).png"), (tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (4).png"), (tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (5).png"), (tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (6).png"), (tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (7).png"), (tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (8).png"), (tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (9).png"), (tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/run/Run (10).png"), (tam_x,tam_y)))
 
         #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
         for sprite in self.movimiento_derecho_sprites:
@@ -531,16 +765,16 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
 
         #INACTIVO: ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
 
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (1).png"), (64,64)))
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (2).png"), (64,64)))
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (3).png"), (64,64)))
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (4).png"), (64,64)))
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (5).png"), (64,64)))
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (6).png"), (64,64)))
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (7).png"), (64,64)))
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (8).png"), (64,64)))
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (9).png"), (64,64)))
-        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (10).png"),(64,64)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (1).png"), (tam_x,tam_y)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (2).png"), (tam_x,tam_y)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (3).png"), (tam_x,tam_y)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (4).png"), (tam_x,tam_y)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (5).png"), (tam_x,tam_y)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (6).png"), (tam_x,tam_y)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (7).png"), (tam_x,tam_y)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (8).png"), (tam_x,tam_y)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (9).png"), (tam_x,tam_y)))
+        self.inactivo_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/idle/Idle (10).png"),(tam_x,tam_y)))
         
 
        #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
@@ -551,16 +785,16 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
 
         #SALTO: ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
 
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (1).png"), (64,64)))
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (2).png"), (64,64)))
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (3).png"), (64,64)))
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (4).png"), (64,64)))
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (5).png"), (64,64)))
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (6).png"), (64,64)))
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (7).png"), (64,64)))
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (8).png"), (64,64)))
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (9).png"), (64,64)))
-        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (10).png"), (64,64)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (1).png"), (tam_x,tam_y)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (2).png"), (tam_x,tam_y)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (3).png"), (tam_x,tam_y)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (4).png"), (tam_x,tam_y)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (5).png"), (tam_x,tam_y)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (6).png"), (tam_x,tam_y)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (7).png"), (tam_x,tam_y)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (8).png"), (tam_x,tam_y)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (9).png"), (tam_x,tam_y)))
+        self.salto_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/jump/Jump (10).png"), (tam_x,tam_y)))
 
         #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
         for sprite in self.salto_derecho_sprites:
@@ -570,22 +804,42 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
 
         #ATAQUE: ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
 
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (1).png"), (64,64)))
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (2).png"), (64,64)))
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (3).png"), (64,64)))
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (4).png"), (64,64)))
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (5).png"), (64,64)))
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (6).png"), (64,64)))
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (7).png"), (64,64)))
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (8).png"), (64,64)))
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (9).png"), (64,64)))
-        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (10).png"), (64,64)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (1).png"), (tam_x,tam_y)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (2).png"), (tam_x,tam_y)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (3).png"), (tam_x,tam_y)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (4).png"), (tam_x,tam_y)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (5).png"), (tam_x,tam_y)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (6).png"), (tam_x,tam_y)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (7).png"), (tam_x,tam_y)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (8).png"), (tam_x,tam_y)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (9).png"), (tam_x,tam_y)))
+        self.ataque_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/attack/Attack (10).png"), (tam_x,tam_y)))
 
         #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
         for sprite in self.ataque_derecho_sprites:
 
             #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
             self.ataque_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+
+
+        #INMUNIDAD
+
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_1.png"), (tam_x,tam_y)))
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_2.png"), (tam_x,tam_y)))
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_3.png"), (tam_x,tam_y)))
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_4.png"), (tam_x,tam_y)))
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_5.png"), (tam_x,tam_y)))
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_6.png"), (tam_x,tam_y)))
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_7.png"), (tam_x,tam_y)))
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_8.png"), (tam_x,tam_y)))
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_9.png"), (tam_x,tam_y)))
+        self.inmune_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/player/hit/hit_10.png"), (tam_x,tam_y)))
+
+        #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+        for sprite in self.inmune_derecho_sprites:
+
+            #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+            self.inmune_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
 
         #SE USARA COMO INDICE DE LA LISTA - INDEX
         self.indice_sprite = 0
@@ -605,6 +859,10 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
         #BANDERAS PARA LOS EVENTOS DISPARADORES (DISPARAR Y SALTAR)
         self.animacion_salto = False
         self.animacion_disparo = False
+        self.animacion_inmune = False
+        #self.animacion_daño = False TESTEAR
+        #Crear otra funcion (parecida a disparar que el jugador titile para señalar que no puede ser lastimado en ese momento)
+        #Tendria que tener una duracion dependiendo el daño que le pueden hacer (Si son 5 segundos, dure 5 segundos, etc)
 
         #CARGA DE SONIDOS
         self.sonido_salto = pygame.mixer.Sound("sounds/jump_sound.wav") #SONIDO AL SALTAR
@@ -625,7 +883,6 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
         self.posicion_inicial_y = y #POSICION COORDENADA Y
         self.ultimo_disparo = 0 #TIEMPO INICIAL DE DISPARO
 
-
     def update(self): #Actualizar el jugador
 
         #SE ELIGE SEPARAR LAS FUNCIONES PARA TENER UN MEJOR CONTROL DE CADA UNA:
@@ -636,7 +893,6 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
 
         #CREACION DE LA MASCARA PARA MEJORAR LA PRECISION DE LAS COLISIONES
         self.mascara = pygame.mask.from_surface(self.image)
-    
 
     def mover(self): #Movimiento del jugador
         
@@ -647,12 +903,12 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
 
         teclas = pygame.key.get_pressed() #TECLAS = VERIFICA SI SE TOCO UNA TECLA
 
-        if teclas[pygame.K_LEFT]: #SE PULSO LA IZQUIERDA? SI:
+        if teclas[pygame.K_a] or teclas[pygame.K_LEFT]: #SE PULSO LA IZQUIERDA? SI:
 
             self.aceleracion.x = -1 * self.VELOCIDAD_HORIZONTAL
             self.animacion(self.movimiento_izquierdo_sprites, 0.5) #AGREGO LA ANIMACION AL MOVIMIENTO
 
-        elif teclas[pygame.K_RIGHT]: #SE PULSO LA DERECHA? SI:
+        elif teclas[pygame.K_d] or teclas[pygame.K_RIGHT]: #SE PULSO LA DERECHA? SI:
 
             self.aceleracion.x = self.VELOCIDAD_HORIZONTAL
             self.animacion(self.movimiento_derecho_sprites, 0.5) #AGREGO LA ANIMACION AL MOVIMIENTO
@@ -693,7 +949,6 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
         #DESPUES DE QUE SE ACTUALICEN TODOS LOS VECTORES CORREGIMOS LA POSICION:
 
         self.rect.bottomleft = self.posicion
-
 
     def chequear_colisiones(self): #Chequea las colisiones del jugador con el entorno
         
@@ -754,7 +1009,6 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
 
         self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
 
-
     def chequear_animaciones(self): #Chequea las animaciones de salto y disparo
         
         #CHEQUEO DE SALTO:
@@ -773,8 +1027,15 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
                 self.animacion(self.ataque_derecho_sprites, 0.25) #MOVIMIENTO SALTO DERECHO
 
             else: #Significa que el movimiento era hacia la izquierda <--
-                self.animacion(self.ataque_izquierdo_sprites, 0.25) #MOVIMIENTO SALTO IZQUIERDO
+                self.animacion(self.ataque_izquierdo_sprites, 0.25) #MOVIMIENTO SALTO IZQUIERDO    
 
+        #CHEQUEO AURA DE DAÑO - TESTEAR y en animacion
+        if self.animacion_inmune:
+            if self.velocidad.x > 0: #Significa que el movimiento era hacia la derecha -->
+                self.animacion(self.inmune_derecho_sprites, 0.01) #MOVIMIENTO SALTO DERECHO
+
+            else: #Significa que el movimiento era hacia la izquierda <--
+                self.animacion(self.inmune_izquierdo_sprites, 0.01) #MOVIMIENTO SALTO IZQUIERDO   
 
     def salto(self): #Salto del jugador
         
@@ -787,21 +1048,19 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
             #Activo la animacion de salto:
             self.animacion_salto = True
 
-
     def disparar(self): #Disparo del jugador
         
         self.sonido_disparo.play() #Reproduce el sonido del disparo
+        self.sonido_disparo.set_volume(0.3)
         #Le paso a la clase: las coordenadas del jugador, el grupo y el jugador
         Proyectil(self.rect.centerx, self.rect.centery, self.grupo_proyectil, self)
         self.animacion_disparo = True #Activa la bandera de disparo
-
 
     def reiniciar(self): #Restablece la posicion del jugador
         
         self.velocidad = vector(0,0) #REINICIO LA VELOCIDAD
         self.posicion = vector(self.posicion_inicial_x, self.posicion_inicial_y) #GUARDO LA POSICION CON LOS VALORES INICIALES
         self.rect.bottomleft = self.posicion #LLEVO AL JUGADOR A LA POSICION INICIAL
-
 
     def animacion(self, sprite_lista, velocidad): #Animaciones del jugador
 
@@ -819,7 +1078,10 @@ class Jugador(pygame.sprite.Sprite): #JUGADOR
 
             #COMPROBAR QUE TERMINO LA ANIMACION DE DISPARO:
             if self.animacion_disparo: #SI ESTA ACTIVADO LA ANIMACION:
-                self.animacion_disparo = False #LA DESACTIVA PORQUE O SINO TIENDE AL INFINITO                     
+                self.animacion_disparo = False #LA DESACTIVA PORQUE O SINO TIENDE AL INFINITO
+
+            if self.animacion_inmune:
+                self.animacion_inmune = False                     
 
         #ASEGURA DE QUE ESTAMOS CAMBIANDO NUESTRO VALOR ACTUAL DE SPRITE:
 
@@ -837,10 +1099,15 @@ class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
         #VARIABLES CONSTANTES DE LA MUNICION TESTEAR
         self.velocidad = 20 #VELOCIDAD NO AFECTADA POR LA GRAVEDAD
         self.RANGO = 500 #RANGO <= LUEGO SE DESTRUYE
+
+        #VARIABLES PARA LA RESOLUCION
+        tam_x = 32
+        tam_y = 32
         
         #ANIMACION DEL PROYECTIL:
 
-        colorProyectil = random.randint(0, 1) #COMO SON 2 TIPOS, EL AZAR SON 2 OPCIONES
+        #colorProyectil = random.randint(0, 1) #COMO SON 2 TIPOS, EL AZAR SON 2 OPCIONES
+        colorProyectil = 1
 
         #0 = AZUL
         #1 = ROJO
@@ -851,12 +1118,12 @@ class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
 
             if jugador.velocidad.x > 0: #Significa que el movimiento es hacia la derecha -->
                 
-                self.image = pygame.transform.scale(pygame.image.load("images/player/slash.png"),(32,32))
+                self.image = pygame.transform.scale(pygame.image.load("images/player/slash.png"),(tam_x,tam_y))
 
             else: #Significa que el movimiento es hacia la izquierda <--
 
                 #Reutilizo la misma imagen, y la reverso con FLIP: (PRIMER BOOLEAN: "DAR VUELTA HORIZONTALMENTE", SEGUNDO BOOLEAN: "DAR VUELTA VERTICALMENTE")
-                self.image = pygame.transform.scale(pygame.transform.flip(pygame.image.load("images/player/slash.png"), True, False), (32,32))
+                self.image = pygame.transform.scale(pygame.transform.flip(pygame.image.load("images/player/slash.png"), True, False), (tam_x,tam_y))
                 self.velocidad = -1 * self.velocidad #Garantiza que el disparo tenga orientacion izquierda
 
                 #RECORRIDO DE LA RECTA (rect):
@@ -872,12 +1139,12 @@ class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
 
             if jugador.velocidad.x > 0: #Significa que el movimiento es hacia la derecha -->
                 
-                self.image = pygame.transform.scale(pygame.image.load("images/player/slash1.png"),(32,32))
+                self.image = pygame.transform.scale(pygame.image.load("images/player/slash1.png"),(tam_x,tam_y))
 
             else: #Significa que el movimiento es hacia la izquierda <--
 
                 #Reutilizo la misma imagen, y la reverso con FLIP: (PRIMER BOOLEAN: "DAR VUELTA HORIZONTALMENTE", SEGUNDO BOOLEAN: "DAR VUELTA VERTICALMENTE")
-                self.image = pygame.transform.scale(pygame.transform.flip(pygame.image.load("images/player/slash1.png"), True, False), (32,32))
+                self.image = pygame.transform.scale(pygame.transform.flip(pygame.image.load("images/player/slash1.png"), True, False), (tam_x,tam_y))
                 self.velocidad = -1 * self.velocidad #Garantiza que el disparo tenga orientacion izquierda
 
             #RECORRIDO DE LA RECTA (rect):
@@ -895,7 +1162,7 @@ class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
 
         #self.rect.x +=0 #Se puede usar para otro tipo de disparo (como si fuera una mina de aproximacion) disparo especial
 
-        self.chequear_colision() #TESTEAR           
+        #self.chequear_colision() #TESTEAR           
 
         #DESTRUCCION de la bala si supera el RANGO
 
@@ -904,7 +1171,7 @@ class Proyectil(pygame.sprite.Sprite): #PROYECTIL DISPARADO POR EL JUGADOR
 
             self.kill() #destruye el objeto - en este caso la bala
 
-    def chequear_colision(self): #SI EL PROYECTIL COLISIONA CON EL PORTAL: (CONTINUAR...) TESTEAR
+    def chequear_colision(self): #SI EL PROYECTIL COLISIONA CON EL PORTAL: (CONTINUAR...)
         
         lista_colision = pygame.sprite.groupcollide(grupo_proyectil, grupo_portal, False, False) #Diccionario que guarda las colisiones        
 
@@ -938,11 +1205,15 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
         super().__init__()
 
         #VARIABLES CONSTANTES DE LOS ENEMIGOS:
-        self.ACELERACION_VERTICAL = 3 #GRAVEDAD
+        self.ACELERACION_VERTICAL = 5 #GRAVEDAD
         self.TIEMPO_TUMBADO = 2 #TIEMPO PARA LEVANTARSE
         
         #AGREGO VIDA AL ENEMIGO TESTEAR (¿Esta bien el incremento? ¿Poco? ¿Mucho?)
-        self.VIDA_INICIAL = 75 + (25 * juego.ronda_numero) #VIDA DEL ENEMIGO          
+        self.VIDA_INICIAL = random.randint(75, 100) * (juego.ronda_numero) #VIDA DEL ENEMIGO
+
+        #VARIABLES PARA LA RESOLUCION
+        tam_x = 64
+        tam_y = 64
 
         #ANIMACION DE LOS FOTOGRAMAS - LISTAS VACIAS
 
@@ -967,16 +1238,16 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
         if genero == 0:
 
             #ANIMACION - CAMINANDO DERECHA: ANEXAR A LA LISTA DE ANIMACIONES
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (1).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (2).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (3).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (4).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (5).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (6).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (7).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (8).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (9).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (10).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (1).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (2).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (3).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (4).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (5).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (6).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (7).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (8).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (9).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/walk/Walk (10).png"),(tam_x,tam_y)))
 
             #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
             for sprite in self.movimiento_derecho_sprites:
@@ -984,16 +1255,16 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
                 self.movimiento_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
 
             #ANIMACION - MUERTE DERECHA
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (1).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (2).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (3).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (4).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (5).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (6).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (7).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (8).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (9).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (10).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (1).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (2).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (3).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (4).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (5).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (6).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (7).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (8).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (9).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (10).png"),(tam_x,tam_y)))
 
             #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
             for sprite in self.muerte_derecha_sprites:
@@ -1003,16 +1274,16 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
             #ANIMACION STUNS - ATURDIMIENTOS
 
             #INVIERTE EL ORDEN DE LAS ANIMACIONES DE MUERTE PARA QUE "EMPIECE MUERTO Y TERMINE VIVO"
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (10).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (9).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (8).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (7).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (6).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (5).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (4).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (3).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (2).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (1).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (10).png"),(tam_x,tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (9).png"),(tam_x,tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (8).png"),(tam_x,tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (7).png"),(tam_x,tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (6).png"),(tam_x,tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (5).png"),(tam_x,tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (4).png"),(tam_x,tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (3).png"),(tam_x,tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (2).png"),(tam_x,tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/boy/dead/Dead (1).png"),(tam_x,tam_y)))
 
             #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
             for sprite in self.aturdido_derecho_sprites:
@@ -1022,16 +1293,16 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
         else: #SI TOCA 1 = MUJER *************************************************************************************************************
 
             #ANIMACION - CAMINANDO DERECHA: ANEXAR A LA LISTA DE ANIMACIONES
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (1).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (2).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (3).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (4).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (5).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (6).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (7).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (8).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (9).png"),(64,64)))
-            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (10).png"),(64,64)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (1).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (2).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (3).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (4).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (5).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (6).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (7).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (8).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (9).png"),(tam_x,tam_y)))
+            self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/walk/Walk (10).png"),(tam_x,tam_y)))
 
             #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
             for sprite in self.movimiento_derecho_sprites:
@@ -1039,16 +1310,16 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
                 self.movimiento_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
 
             #ANIMACION - MUERTE DERECHA
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (1).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (2).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (3).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (4).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (5).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (6).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (7).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (8).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (9).png"),(64,64)))
-            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (10).png"),(64,64)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (1).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (2).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (3).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (4).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (5).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (6).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (7).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (8).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (9).png"),(tam_x,tam_y)))
+            self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (10).png"),(tam_x,tam_y)))
 
             #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
             for sprite in self.muerte_derecha_sprites:
@@ -1058,16 +1329,16 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
             #ANIMACION STUNS - ATURDIMIENTOS
 
             #INVIERTE EL ORDEN DE LAS ANIMACIONES DE MUERTE PARA QUE "EMPIECE MUERTO Y TERMINE VIVO"
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (10).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (9).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (8).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (7).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (6).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (5).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (4).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (3).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (2).png"),(64,64)))
-            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (1).png"),(64,64)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (10).png"),(tam_x, tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (9).png"),(tam_x, tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (8).png"),(tam_x, tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (7).png"),(tam_x, tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (6).png"),(tam_x, tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (5).png"),(tam_x, tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (4).png"),(tam_x, tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (3).png"),(tam_x, tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (2).png"),(tam_x, tam_y)))
+            self.aturdido_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/zombie/girl/dead/Dead (1).png"),(tam_x, tam_y)))
 
             #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
             for sprite in self.aturdido_derecho_sprites:
@@ -1120,8 +1391,7 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
         self.vida = self.VIDA_INICIAL #VIDA DEL ENEMIGO (TESTEAR)
 
         #AGREGO AL GRUPO PRINCIPAL PARA QUE SE MUESTRE EL DIBUJO:
-        #grupo_principal.add(self)  
-
+        #grupo_principal.add(self)
 
     def update(self): #Actualizar el enemigo
         
@@ -1146,7 +1416,6 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
                     #Cuando el Enemigo es tumbado, la imagen se mantiene igual
                     #Cuando se levanta tiene que comenzar en el indice cero de nuestro aumento:
                     self.indice_sprite = 0
-
 
     def mover(self): #Movimiento del enemigo       
         
@@ -1189,6 +1458,271 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
 
                 self.rect.bottomleft = self.posicion
 
+    def chequear_colisiones(self): #Chequea las colisiones del enemigo con el entorno
+
+        #spritecollide(Grupo a comprobar, Grupo A Colisionar, Desaparecer objeto al chocar?)
+        colision_plataforma = pygame.sprite.spritecollide(self, self.grupo_plataforma, False, pygame.sprite.collide_mask) #COMPRUEBA COLISION
+
+        #Tambien se puede usar para dañar al objeto colisionado
+        if colision_plataforma: #SI LA LISTA >> NO << ESTA VACIA:
+                
+            #IGUALA LA POSICION AL OBJETO QUE CHOCA + 1: DE REBOTE AL CHOCAR.
+            self.posicion.y = colision_plataforma[0].rect.top + 1
+            self.velocidad.y = 0 #ASEGURA QUE SE DEJE DE MOVER
+        
+        #Chequea las colisiones con los portales:
+        if pygame.sprite.spritecollide(self,self.grupo_portal, False, pygame.sprite.collide_mask):
+
+            self.sonido_portal.play() #Activa el sonido del portal
+
+            #Una vez que colisiona, determinar a que portal se movera:
+
+            #IZQUIERDA Y DERECHA:
+
+            #Si es mayor a la mitad HORIZONTAL, estas en el LADO DERECHO
+            if self.posicion.x > WIDTH / 2: #Centro de la pantalla Horizontalmente
+                self.posicion.x = 86 #Lleva al jugador a esta posicion
+            
+            else: #Por contrario estas en el LADO IZQUIERDO
+                self.posicion.x = WIDTH - 150 #150 Pixeles
+
+            #ARRIBA Y ABAJO:
+
+            #Si es mayor a la mitad VERTICAL, estas ARRIBA
+            if self.posicion.y > HEIGHT / 2: #Centro de la pantalla Verticalmente
+                self.posicion.y = 64 #Lleva al jugador a esta posicion
+            
+            else: #Por contrario estas ABAJO
+                self.posicion.y = HEIGHT - 132 #132 Pixeles
+
+            self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
+
+    def chequear_animaciones(self): #Chequea las animaciones de muerte y ascenso
+        
+        #ANIMACION MUERTE - TUMBADO:
+        if self.animacion_abatido:
+
+            if self.direccion == 1: #DIRECCION DERECHA
+                self.animacion(self.muerte_derecha_sprites, 0.95)
+
+            else: #DIRECCION IZQUIERDA
+                self.animacion(self.muerte_izquierda_sprites, 0.95)  
+
+        #ANIMACION "RESURECCION" - LEVANTARSE:
+        if self.animacion_levantarse: #LEVANTARSE = TRUE
+
+            if self.direccion == 1: #DIRECCION DERECHA
+                self.animacion(self.aturdido_derecho_sprites, 0.95)
+
+            else: #DIRECCION IZQUIERDA
+                 self.animacion(self.aturdido_izquierdo_sprites, 0.95)   
+
+    def animacion(self, sprite_lista, speed): #Animaciones del enemigo
+        #sprite_list[]: Lista que contiene las animaciones correspondientes
+        #speed: Velocidad de la animacion
+
+        if self.indice_sprite < len(sprite_lista) -1: #RESTA EN UNO PARA QUE COINCIDA CON INDICE
+            self.indice_sprite += speed #AGREGO A LA VARIABLE LA VELOCIDAD
+
+        else:
+            self.indice_sprite = 0 #PARA QUE VUELVA A EMPEZAR
+
+            #TERMINAR LA ANIMACION DE TUMBADO:
+            if self.animacion_abatido:
+                self.indice_sprite = len(sprite_lista) - 1
+                self.animacion_abatido = False #TERMINA EL BUCLE DE ANIMACION 
+
+            #TERMINAR LA ANIMACION DE RESURECCION - LEVANTARSE
+            if self.animacion_levantarse: #RESURECCION = TRUE                
+                self.animacion_levantarse = False #TERMINA EL BUCLE DE ANIMACION
+                self.esta_abatido = False #Para que no vuelva a TUMBARSE
+                #Condicion para que sea la animacion correcta:
+
+                #REINICIAR LAS VARIABLES DE SINCRONIZACION DE TIEMPO:
+                self.contador_fps = 0 #RECUENTO DE FPS REINICIAR
+                self.tiempo_ronda = 0 #REINICIAR                                               
+
+        #ASEGURA DE QUE ESTAMOS CAMBIANDO NUESTRO VALOR ACTUAL DE SPRITE:
+
+        #ESTABLECE LA IMAGEN CON LA VARIABLE + EL SPEED DE LAS CONDICIONES:
+        self.image = sprite_lista[int(self.indice_sprite)]
+
+############################################################################################
+
+class Boss(pygame.sprite.Sprite): #ENEMIGO
+
+    def __init__(self, grupo_plataforma, grupo_portal, min_speed, max_speed): #Iniciar el enemigo
+        
+        super().__init__()
+
+        #VARIABLES CONSTANTES DE LOS ENEMIGOS:
+        self.ACELERACION_VERTICAL = 3 #GRAVEDAD
+        
+        #AGREGO VIDA AL ENEMIGO TESTEAR (¿Esta bien el incremento? ¿Poco? ¿Mucho?)
+        self.VIDA_INICIAL = 300 + (30 * juego.ronda_numero) #VIDA DEL ENEMIGO
+
+        #VARIABLES PARA LA RESOLUCION
+        tam_x = 64
+        tam_y = 64       
+
+        #ANIMACION DE LOS FOTOGRAMAS - LISTAS VACIAS
+        self.movimiento_derecho_sprites = [] #MOVIMIENTO DERECHO
+        self.movimiento_izquierdo_sprites = [] #MOVIMIENTO IZQUIERDA
+
+        self.muerte_derecha_sprites = [] #MUERTE DERECHA
+        self.muerte_izquierda_sprites = [] #MUERZA IZQUIERDA
+
+        #ANIMACION - CAMINANDO DERECHA: ANEXAR A LA LISTA DE ANIMACIONES
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_1.png"),(tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_2.png"),(tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_3.png"),(tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_4.png"),(tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_5.png"),(tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_6.png"),(tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_7.png"),(tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_8.png"),(tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_9.png"),(tam_x,tam_y)))
+        self.movimiento_derecho_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Walking/move_10.png"),(tam_x,tam_y)))
+
+        #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+        for sprite in self.movimiento_derecho_sprites:
+            #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+            self.movimiento_izquierdo_sprites.append(pygame.transform.flip(sprite, True, False))
+
+        #ANIMACION - MUERTE DERECHA
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_1.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_2.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_3.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_4.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_5.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_6.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_7.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_8.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_9.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_10.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_11.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_12.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_13.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_14.png"),(tam_x,tam_y)))
+        self.muerte_derecha_sprites.append(pygame.transform.scale(pygame.image.load("images/boss/Die/Dying_15.png"),(tam_x,tam_y)))
+
+            #AÑADE LOS MOVIMIENTOS IZQUIERDOS = INVIRTIENDO LAS IMAGENES DERECHAS
+        for sprite in self.muerte_derecha_sprites:
+            #FLIP = INVERTIR(IMAGEN A VOLTEAR, HORIZONTAL, VERTICAL)
+            self.muerte_izquierda_sprites.append(pygame.transform.flip(sprite, True, False))
+
+        #MOVIMIENTO DE LOS ENEMIGOS: (ALEATORIOS)
+        self.direccion = random.choice([-1,1]) #SI SALE POR LA DERECHA O IZQUIERDA        
+
+        #SE USARA COMO INDICE DE LA LISTA - INDEX
+        self.indice_sprite = 0
+
+        if self.direccion == -1:
+            #CARGA LA IMAGEN DE PARTIDA
+            self.image = self.movimiento_izquierdo_sprites[self.indice_sprite] 
+
+        else:
+            self.image = self.movimiento_derecho_sprites[self.indice_sprite]         
+
+        #OBTENGO LA RECTA (get.rect): Es el recorrido del objeto - En este caso el ENEMIGO
+        self.rect = self.image.get_rect() #POSICION DE LA RECTA
+        self.rect.bottomleft = (random.randint(100, WIDTH - 100), - 100) #A PARTIR DE: ABAJO A LA IZQUIERDA = (x,y)
+
+        #GRUPOS SPRITES:
+        self.grupo_plataforma = grupo_plataforma
+        self.grupo_portal = grupo_portal
+
+        #BANDERAS PARA LOS EVENTOS DISPARADORES (MUERTE Y ATURDIMIENTO)
+        self.animacion_abatido = False
+        self.animacion_levantarse = False        
+
+        #CARGA DE SONIDOS
+        self.sonido_daño = pygame.mixer.Sound("sounds/zombie_hit.wav") #SONIDO AL DAÑARSE
+        self.sonido_eliminado = pygame.mixer.Sound("sounds/zombie_kick.wav") #SONIDO AL MORIR
+        self.sonido_portal = pygame.mixer.Sound("sounds/portal_sound.wav") #SONIDO DEL PORTAL
+
+        #VECTORES DE CINEMATICAS - AUXILIARES
+                
+        self.posicion = vector(self.rect.x,self.rect.y) #VECTOR DE POSICION
+
+        #SE MULTIPLICA POR LA direccion PARA DAR LA DIRECCION CORRECTA (POSITIVA O NEGATIVA)
+        self.velocidad = vector(self.direccion * random.randint(min_speed,max_speed),0) #VELOCIDAD DEL ENEMIGO       
+        self.aceleracion = vector(0, self.ACELERACION_VERTICAL) #ACELERACION Y GRAVEDAD
+
+        #VALORES INICIALES DEL ENEMIGO - INICIO - REINICIO
+        self.esta_abatido = False #ESTA MUERTO = FALSO
+        self.tiempo_ronda = 0 #TIEMPO DE RONDA
+        self.contador_fps = 0 #CONTEO DE FOTOGRAMAS
+
+        self.vida = self.VIDA_INICIAL #VIDA DEL ENEMIGO (TESTEAR)
+
+        #AGREGO AL GRUPO PRINCIPAL PARA QUE SE MUESTRE EL DIBUJO:
+        #grupo_principal.add(self)
+
+    def update(self): #Actualizar el enemigo
+        
+        self.mover()
+        self.chequear_colisiones()
+        self.chequear_animaciones()
+
+        #Determina cuando el zombi debe levantarse despues de ser tumbado:
+
+        if self.esta_abatido: #TUMBADO = TRUE
+
+            self.contador_fps += 1
+
+            if self.contador_fps % FPS == 0: #CONTEO DIVISIBLE FPS == 0 - SI
+
+                self.tiempo_ronda += 1
+
+                if self.tiempo_ronda == self.TIEMPO_TUMBADO: #SI SON IGUALES EL ENEMIGO SE LEVANTA
+
+                    self.animacion_levantarse = True
+
+                    #Cuando el Enemigo es tumbado, la imagen se mantiene igual
+                    #Cuando se levanta tiene que comenzar en el indice cero de nuestro aumento:
+                    self.indice_sprite = 0
+
+    def mover(self): #Movimiento del enemigo       
+        
+            if not self.esta_abatido: #Mientras NO este muerto el Enemigo:
+
+                #Condicion para que sea la animacion correcta:
+                if self.direccion == -1:
+
+                    self.animacion(self.movimiento_izquierdo_sprites, 0.5) #Caminando para la izquierda
+
+                else:
+
+                    self.animacion(self.movimiento_derecho_sprites, 0.5) #Caminando para la derecha
+
+                #CALCULAR LOS VALORES DE LAS CINEMATICAS:      
+
+                #NO SE NECESITA ACTUALIZAR EL VECTOR DE ACELERACION PORQUE NUNCA CAMBIA.
+                
+                #MATEMATICA VECTORIAL (5, 2) + (6, 1) = (11, 3)
+                
+                self.velocidad += self.aceleracion #ACTUALIZA EL VECTOR DE VELOCIDAD
+
+                self.posicion += self.velocidad + 0.5 * self.aceleracion #ACTUALIZA EL VECTOR DE POSICION        
+
+                #ACTUALIZAR LA RECTA (rect) BASADA EN LOS CALCULOS CINEMATICOS:
+                
+                #CONDICIONES PARA QUE EL ENEMIGO PASE DE UN LADO A OTRO DE LA PANTALLA        
+
+                if self.posicion.x < 0: #Posicion ENEMIGO menor a 0
+
+                    self.posicion.x = WIDTH
+
+                elif self.posicion.x > WIDTH: #Posicion ENEMIGO mayor a la pantalla
+
+                    self.posicion.x = 0
+
+                #SE PUEDE CAMBIAR PARA QUE EL ENEMIGO NO PUEDA SALIR DE LA PANTALLA
+
+                #DESPUES DE QUE SE ACTUALICEN TODOS LOS VECTORES CORREGIMOS LA POSICION:
+
+                self.rect.bottomleft = self.posicion
 
     def chequear_colisiones(self): #Chequea las colisiones del enemigo con el entorno
 
@@ -1229,7 +1763,6 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
 
             self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
 
-
     def chequear_animaciones(self): #Chequea las animaciones de muerte y ascenso
         
         #ANIMACION MUERTE - TUMBADO:
@@ -1249,7 +1782,6 @@ class Enemigo(pygame.sprite.Sprite): #ENEMIGO
 
             else: #DIRECCION IZQUIERDA
                  self.animacion(self.aturdido_izquierdo_sprites, 0.95)   
-
 
     def animacion(self, sprite_lista, speed): #Animaciones del enemigo
         #sprite_list[]: Lista que contiene las animaciones correspondientes
@@ -1295,16 +1827,20 @@ class RubyLogo(pygame.sprite.Sprite): #Animacion del LOGO del juego - PODRIA SER
         #ANIMACION DE LOS FRAMES DEL RUBY
         self.logo_sprites = []
 
+        #VARIABLES PARA LA RESOLUCION
+        tam_x = 54
+        tam_y = 54
+
         #ANIMACION GIRATORIA:
 
         #ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
-        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile000.png"),(54,54)))
-        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile001.png"),(54,54)))
-        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile002.png"),(54,54)))
-        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile003.png"),(54,54)))
-        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile004.png"),(54,54)))
-        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile005.png"),(54,54)))
-        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile006.png"),(54,54)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile000.png"),(tam_x,tam_y)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile001.png"),(tam_x,tam_y)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile002.png"),(tam_x,tam_y)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile003.png"),(tam_x,tam_y)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile004.png"),(tam_x,tam_y)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile005.png"),(tam_x,tam_y)))
+        self.logo_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile006.png"),(tam_x,tam_y)))
         
         #SE USARA COMO INDICE DE LA LISTA - INDEX
         self.indice_sprite = 0
@@ -1354,17 +1890,21 @@ class Ruby(pygame.sprite.Sprite): #Ruby: Da puntos y aumenta la salud del jugado
         self.HORIZONTAL_VELOCIDAD = 5 #Velocidad
         #TIPO = random.randint(0,N) SE PODRIA AGREGAR DIFERENTES TIPOS DE POTENCIADORES (DIF. IMAGENES) Y EN LA CLASE "JUEGO" DEPENDIENDO EL "TIPO" QUE SEA HAGA DIFERENTES COSAS
 
+        #VARIABLES PARA LA RESOLUCION
+        tam_x = 54
+        tam_y = 54
+
         #Animacion de los fotogramas
         self.ruby_sprites = []
 
         #ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS
-        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile000.png"),(54,54)))
-        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile001.png"),(54,54)))
-        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile002.png"),(54,54)))
-        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile003.png"),(54,54)))
-        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile004.png"),(54,54)))
-        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile005.png"),(54,54)))
-        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile006.png"),(54,54)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile000.png"),(tam_x,tam_y)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile001.png"),(tam_x,tam_y)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile002.png"),(tam_x,tam_y)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile003.png"),(tam_x,tam_y)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile004.png"),(tam_x,tam_y)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile005.png"),(tam_x,tam_y)))
+        self.ruby_sprites.append(pygame.transform.scale(pygame.image.load("images/ruby/tile006.png"),(tam_x,tam_y)))
 
         #SE USARA COMO INDICE DE LA LISTA - INDEX
         self.indice_sprite = 0
@@ -1466,6 +2006,7 @@ class Ruby(pygame.sprite.Sprite): #Ruby: Da puntos y aumenta la salud del jugado
 
             self.rect.bottomleft = self.posicion #Guarda la posicion en la recta
 
+
     def animacion(self, sprite_list, speed):
         #sprite_list[]: Lista que contiene las animaciones correspondientes
         #speed: Velocidad de la animacion
@@ -1492,61 +2033,65 @@ class Portal(pygame.sprite.Sprite): #Portal de teletransportacion
         #ANIMACION DE LOS FRAMES DEL PORTAL
         self.portal_sprites = []
 
+        #VARIABLES PARA LA RESOLUCION
+        tam_x = 80
+        tam_y = 80
+
         #ANIMACION DEL PORTAL:
 
         #EN CASO DE QUE EL PORTAL SEA VERDE:        
         if color == "green":
 
             #ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS:            
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile000.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile001.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile002.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile003.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile004.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile005.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile006.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile007.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile008.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile009.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile010.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile011.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile012.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile013.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile014.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile015.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile016.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile017.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile018.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile019.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile020.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile021.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile000.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile001.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile002.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile003.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile004.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile005.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile006.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile007.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile008.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile009.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile010.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile011.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile012.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile013.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile014.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile015.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile016.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile017.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile018.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile019.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile020.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/green/tile021.png"),(tam_x,tam_y)))
         
         #EN CASO DE QUE EL PORTAL NO SEA VERDE:
         else:
 
             #ANEXAR A LA LISTA LAS ANIMACIONES Y RE-DIMENSIONARLAS:
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile000.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile001.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile002.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile003.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile004.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile005.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile006.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile007.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile008.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile009.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile010.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile011.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile012.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile013.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile014.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile015.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile016.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile017.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile018.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile019.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile020.png"),(72,72)))
-            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile021.png"),(72,72)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile000.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile001.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile002.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile003.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile004.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile005.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile006.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile007.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile008.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile009.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile010.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile011.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile012.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile013.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile014.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile015.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile016.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile017.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile018.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile019.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile020.png"),(tam_x,tam_y)))
+            self.portal_sprites.append(pygame.transform.scale(pygame.image.load("images/portals/purple/tile021.png"),(tam_x,tam_y)))
 
         #SE USARA COMO INDICE DE LA LISTA - INDEX
         self.indice_sprite = random.randint(0,len(self.portal_sprites)-1) #INDEX RANDOM
@@ -1643,9 +2188,124 @@ mapa_mosaico = [
 
             ]
 
+#FULL HD
+# 1920 / 32 = 60 -------------------- 1080 / 32 = 34  
+
+mapa_mosaico1 = [
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0], #1
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #2
+
+    [7, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 6, #PORTALES Y LOGO
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 8, 0,], #3
+
+    [4, 4, 4, 4, 4, 4, 4, 4, 4, 4,  4, 4, 4, 4, 4, 4, 4, 4, 5, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, #PLATAFORMA
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 3, 4, 4, 4, 4, 4, 4, 4, 4,   4, 4, 4, 4, 4, 4, 4, 4, 4, 4,], #4
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 3, 4, 4, 4, 4,
+     4, 4, 4, 4, 5, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #5
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #6
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #7
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #8
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #9
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 3, 4, 4,   4, 4, 4, 4, 4, 4, 4, 4, 4, 4, #PLATAFORMA
+     4, 4, 4, 4, 4, 4, 4, 4, 4, 4,  4, 4, 5, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #10
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #11
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #12
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #14
+
+    [4, 4, 4, 4, 4, 4, 4, 4, 4, 4,  4, 4, 4, 4, 4, 5, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, #PLATAFORMA
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 3, 4, 4, 4, 4, 4,   4, 4, 4, 4, 4, 4, 4, 4, 4, 4,], #15
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #15
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #16
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #17
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 3, 4,   4, 4, 4, 4, 4, 4, 4, 4, 4, 4, #PLATAFORMA
+     4, 4, 4, 4, 4, 4, 4, 4, 4, 4,  4, 5, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #18
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #19
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #20
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #21
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #24
+
+    [4, 4, 4, 4, 4, 4, 4, 4, 4, 4,  4, 4, 4, 4, 4, 4, 4, 4, 5, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, #PLATAFORMA
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 3, 4, 4, 4, 4, 4, 4, 4, 4,   4, 4, 4, 4, 4, 4, 4, 4, 4, 4,], #23
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #24
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #25
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 9, #JUGADOR
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #26
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #27
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   3, 4, 4, 4, 4, 4, 4, 4, 4, 4, #PLATAFORMA
+     4, 4, 4, 4, 4, 4, 4, 4, 4, 5,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #28
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #29
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #30
+
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,], #31
+
+    [8, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, #PORTALES
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 7, 0,], #32
+
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  2, 2, 2, 2, 2, 2, 2, 2, 2, 2,   2, 2, 2, 2, 2, 2, 2, 2, 2, 2, #SUELO
+     2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  2, 2, 2, 2, 2, 2, 2, 2, 2, 2,   2, 2, 2, 2, 2, 2, 2, 2, 2, 2,], #33
+
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1,   1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1,   1, 1, 1, 1, 1, 1, 1, 1, 1, 1,] #34 
+    ]    
+
+# 0 -> NO REPRESENTA NINGUN AZULEJO (TILE) - ESPACIO VACIO
+# 1 -> TIERRA
+# 2-5 -> PLATAFORMAS
+# 6 -> RUBI MAKER - POTENCIADOR
+# 7-8 -> PORTALES 7 = VERDE ---- 8 = VIOLETA
+#9 -> JUGADOR
+
 #GENERAR LOS OBJETOS DEL MAPA DE MOSAICO
 
-#RECORRER LAS 23 FILAS:
+#RECORRER EL MAPA GRAFICO:
 
 for i in range(len(mapa_mosaico)):
 
@@ -1702,7 +2362,7 @@ for i in range(len(mapa_mosaico)):
             #GRUPO JUGADOR
 
 #FONDO DE PANTALLA - CARGA LA IMAGEN:
-background_image = pygame.transform.scale(pygame.image.load("images/background.png"),(WIDTH,HEIGHT))
+background_image = pygame.transform.scale(pygame.image.load("images/backgroundRojo.png"),(WIDTH, HEIGHT))
 pygame.display.set_icon(icono) #ICONO
 
 #pygame.transform.scale CAMBIA LA ESCALA DE LA IMAGEN(IMAGEN,(ANCHO, ALTO))
@@ -1714,21 +2374,34 @@ backgroud_rect.topleft = (0, 0) #POSICIONA DESDE ARRIBA-IZQUIERDA LA RECTA (Rect
 
 #CREACION DEL JUEGO
 juego = Juego(jugador, grupo_enemigo, grupo_plataforma, grupo_portal, grupo_proyectil, grupo_ruby)
-juego.pausar_juego("Bienvenido", "Presiona 'Enter' para ingresar") #ESPERA EN LA INTERFACE DE PAUSA
+
 pygame.mixer.music.play(-1, 0.0) # -1 INFINITO, INICIO DE MUSICA
-pygame.mixer.music.set_volume(0.05) #VOLUMEN DESDE: 0.1 a 1.0 puede estirarse: 0.0001, 0.000009 etc
+pygame.mixer.music.set_volume(0.2) #VOLUMEN DESDE: 0.1 a 1.0 puede estirarse: 0.0001, 0.000009 etc
+
+#juego.pausar_juego("Bienvenido", "Presiona 'Enter' para ingresar") #ESPERA EN LA INTERFACE DE PAUSA
+juego.presentacion()
 
 #AGREGAR EN LOS EVENTOS TECLAS PARA BAJAR O SUBIR EL VOLUMEN
+
+#CAMBIAR EL FONDO DE COLOR A MEDIDA QUE PASA EL TIEMPO
+tiempo_pantalla = 0
 
 #BUCLE PRINCIPAL DEL JUEGO (CICLO DE VIDA DEL JUEGO):
 
 running = True #VARIABLE BANDERA PARA DETERMINAR SI SE ESTA EJECUTANDO EL CICLO
 
+#TESTEAR - ACOMODAR EN OTRO LADO, PUESTO ACA PARA LA PRUEBA
+musica = True
+
 while running: #Mientras se este corriendo el juego:
 
     for evento in pygame.event.get(): #Captura los eventos dentro del juego
 
-        if evento.type == pygame.QUIT: #Cuando el evento es igual a X (SALIR)
+        tiempo_pantalla = pygame.time.get_ticks() #TESTEAR TIEMPO (PODRIA SER UNA FUNCION "CHEQUEAR_FONDO") Y QUE TENGA TODAS LAS CONDICIONES AHI
+        if(tiempo_pantalla == -1):
+            background_image = pygame.transform.scale(pygame.image.load("images/backgroundRojo.png"),(WIDTH, HEIGHT))
+
+        if evento.type == pygame.QUIT: #Cuando el evento es igual a X/CRUZ (SALIR)
             running = False #Termina el ciclo del juego
 
         if evento.type == pygame.KEYDOWN:
@@ -1736,13 +2409,32 @@ while running: #Mientras se este corriendo el juego:
 
             if evento.key == pygame.K_SPACE: #BARRA ESPACIADORA
                 jugador.salto() #SALTAR
+            
+            if evento.key == pygame.K_ESCAPE: #PRUEBA PARA TERMINAR EL JUEGO CON ESC #AGREGARLO EN LAS PAUSAS (PARA QUE SE PUEDA FINALIZAR AHI TAMBIEN)
+                running = False
+
+            if evento.key == pygame.K_m: #PARA SACAR LA MUSICA
+                #QUITAR ADEMAS:
+                #LOS SONIDOS DE LOS DISPAROS
+                #COLISIONES
+                #PORTALES
+                #MUERTES, ETC
+
+                if(musica):
+                    pygame.mixer.music.pause() #Pausa la musica
+                    musica = False
+                
+                else:
+                    pygame.mixer.music.unpause() #Vuelve la musica
+                    musica = True            
+
   
-            if evento.key == pygame.K_x: #TECLA X 
+            if evento.key == pygame.K_x or evento.key == pygame.K_l: #TECLA X 
 
                 primer_disparo = pygame.time.get_ticks()
                 
                 #CONTROLA LA VELOCIDAD DE LAS RAFAGAS
-                if primer_disparo - jugador.ultimo_disparo > jugador.CADENCIA + (juego.ronda_numero * 25): 
+                if primer_disparo - jugador.ultimo_disparo > jugador.CADENCIA + (juego.ronda_numero * 35): 
                     #TESTEAR: SE HACE CADA VEZ MAS LENTO DISPARAR POR LA CADENCIA AUMENTADA
 
                     jugador.disparar() #DISPARAR
@@ -1751,7 +2443,7 @@ while running: #Mientras se este corriendo el juego:
             #ELIMINAR FUNCION
             if evento.key == pygame.K_RETURN: #ENTER
                 #CREACION DE LOS ENEMIGOS
-                enemigo = Enemigo(grupo_plataforma, grupo_portal, 2, 7)  
+                enemigo = Boss(grupo_plataforma, grupo_portal, 5, 7)  
                 grupo_enemigo.add(enemigo) 
 
             #PAUSA
