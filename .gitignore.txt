@@ -1,2 +1,2 @@
-
-.COMMITS/
+COMMITS/
+auxiliar/
